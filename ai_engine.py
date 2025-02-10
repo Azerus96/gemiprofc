@@ -634,8 +634,8 @@ class GameState:
                 if not actions:
                     logger.debug("No actions available for this state.")
                     return 0
-                                self.nodes[info_set] = CFRNode(actions)
-            node = self.nodes[info_set]
+                                
+            self.nodes[info_set] = CFRNode(actions)
 
             strategy = node.get_strategy(p0 if player == 0 else p1)
             util = defaultdict(float)

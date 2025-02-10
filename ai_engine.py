@@ -655,7 +655,7 @@ class GameState:
             if player == 0:
                 for a in node.actions:
                     node.regret_sum[a] += p1 * (util[a] - node_util)
-                                else:
+                else:
                 for a in node.actions:
                     node.regret_sum[a] += p0 * (util[a] - node_util)
 

@@ -265,7 +265,6 @@ class GameState:
 
         logger.debug(f"Generated actions: {actions}")
         return actions
-
     def is_valid_fantasy_entry(self, action):
         """Checks if an action leads to a valid fantasy mode entry."""
         new_board = Board()
@@ -576,111 +575,111 @@ class GameState:
         ranks = [card.rank for card in cards]
         return any(ranks.count(r) == 2 for r in ranks)
 
-class CFRNode:
-    def __init__(self, actions):
-        self.regret_sum = defaultdict(float)
-        self.strategy_sum = defaultdict(float)
-        self.actions = actions
+    class CFRNode:
+        def __init__(self, actions):
+            self.regret_sum = defaultdict(float)
+            self.strategy_sum = defaultdict(float)
+            self.actions = actions
 
-    def get_strategy(self, realization_weight):
-        normalizing_sum = 0
-        strategy = defaultdict(float)
-        for a in self.actions:
-            strategy[a] = self.regret_sum[a] if self.regret_sum[a] > 0 else 0
-            normalizing_sum += strategy[a]
+        def get_strategy(self, realization_weight):
+            normalizing_sum = 0
+            strategy = defaultdict(float)
+            for a in self.actions:
+                strategy[a] = self.regret_sum[a] if self.regret_sum[a] > 0 else 0
+                normalizing_sum += strategy[a]
 
-        for a in self.actions:
+            for a in self.actions:
+                if normalizing_sum > 0:
+                    strategy[a] /= normalizing_sum
+                else:
+                    strategy[a] = 1.0 / len(self.actions)
+                self.strategy_sum[a] += realization_weight * strategy[a]
+            return strategy
+
+        def get_average_strategy(self):
+            avg_strategy = defaultdict(float)
+            normalizing_sum = sum(self.strategy_sum.values())
             if normalizing_sum > 0:
-                strategy[a] /= normalizing_sum
+                for a in self.actions:
+                    avg_strategy[a] = self.strategy_sum[a] / normalizing_sum
             else:
-                strategy[a] = 1.0 / len(self.actions)
-            self.strategy_sum[a] += realization_weight * strategy[a]
-        return strategy
+                for a in self.actions:
+                    avg_strategy[a] = 1.0 / len(self.actions)
+            return avg_strategy
 
-    def get_average_strategy(self):
-        avg_strategy = defaultdict(float)
-        normalizing_sum = sum(self.strategy_sum.values())
-        if normalizing_sum > 0:
-            for a in self.actions:
-                avg_strategy[a] = self.strategy_sum[a] / normalizing_sum
-        else:
-            for a in self.actions:
-                avg_strategy[a] = 1.0 / len(self.actions)
-        return avg_strategy
+    class CFRAgent:
+        def __init__(self, iterations=1000, stop_threshold=0.001):
+            self.nodes = {}
+            self.iterations = iterations
+            self.stop_threshold = stop_threshold
+            self.save_interval = 100  # Сохраняем каждые 100 итераций
 
-class CFRAgent:
-    def __init__(self, iterations=1000, stop_threshold=0.001):
-        self.nodes = {}
-        self.iterations = iterations
-        self.stop_threshold = stop_threshold
-        self.save_interval = 100  # Сохраняем каждые 100 итераций
-
-    def cfr(self, game_state, p0, p1, timeout_event, result, iteration):
-        if timeout_event.is_set():
-            logger.info("CFR timed out!")
-            return 0
-
-        if game_state.is_terminal():
-            payoff = game_state.get_payoff()
-            logger.debug(f"cfr called in terminal state. Payoff: {payoff}")
-            return payoff
-
-        player = game_state.get_current_player()
-        info_set = game_state.get_information_set()
-        logger.debug(f"cfr called for info_set: {info_set}, player: {player}")
-
-        if info_set not in self.nodes:
-            actions = game_state.get_actions()
-            if not actions:
-                logger.debug("No actions available for this state.")
-                return 0
-            self.nodes[info_set] = CFRNode(actions)
-        node = self.nodes[info_set]
-
-        strategy = node.get_strategy(p0 if player == 0 else p1)
-        util = defaultdict(float)
-        node_util = 0
-
-        for a in node.actions:
+        def cfr(self, game_state, p0, p1, timeout_event, result, iteration):
             if timeout_event.is_set():
-                logger.info("CFR timed out during action loop!")
+                logger.info("CFR timed out!")
                 return 0
 
-            next_state = game_state.apply_action(a)
+            if game_state.is_terminal():
+                payoff = game_state.get_payoff()
+                logger.debug(f"cfr called in terminal state. Payoff: {payoff}")
+                return payoff
+
+            player = game_state.get_current_player()
+            info_set = game_state.get_information_set()
+            logger.debug(f"cfr called for info_set: {info_set}, player: {player}")
+
+            if info_set not in self.nodes:
+                actions = game_state.get_actions()
+                if not actions:
+                    logger.debug("No actions available for this state.")
+                    return 0
+                self.nodes[info_set] = CFRNode(actions)
+            node = self.nodes[info_set]
+
+            strategy = node.get_strategy(p0 if player == 0 else p1)
+            util = defaultdict(float)
+            node_util = 0
+
+            for a in node.actions:
+                if timeout_event.is_set():
+                    logger.info("CFR timed out during action loop!")
+                    return 0
+
+                next_state = game_state.apply_action(a)
+                if player == 0:
+                    util[a] = -self.cfr(next_state, p0 * strategy[a], p1, timeout_event, result, iteration)
+                else:
+                    util[a] = -self.cfr(next_state, p0, p1 * strategy[a], timeout_event, result, iteration)
+                node_util += strategy[a] * util[a]
+
             if player == 0:
-                util[a] = -self.cfr(next_state, p0 * strategy[a], p1, timeout_event, result, iteration)
-            else:
-                util[a] = -self.cfr(next_state, p0, p1 * strategy[a], timeout_event, result, iteration)
-            node_util += strategy[a] * util[a]
+                for a in node.actions:
+                    node.regret_sum[a] += p1 * (util[a] - node_util)
+                                else:
+                for a in node.actions:
+                    node.regret_sum[a] += p0 * (util[a] - node_util)
 
-        if player == 0:
-            for a in node.actions:
-                node.regret_sum[a] += p1 * (util[a] - node_util)
-        else:
-            for a in node.actions:
-                node.regret_sum[a] += p0 * (util[a] - node_util)
+            logger.debug(f"cfr returning for info_set: {info_set}, node_util: {node_util}")
+            return node_util
 
-        logger.debug(f"cfr returning for info_set: {info_set}, node_util: {node_util}")
-        return node_util
+        def train(self, timeout_event, result):
+            for i in range(self.iterations):
+                if timeout_event.is_set():
+                    logger.info(f"Training interrupted after {i} iterations due to timeout.")
+                    break  # Exit the loop if timeout is signaled
 
-    def train(self, timeout_event, result):
-        for i in range(self.iterations):
-            if timeout_event.is_set():
-                logger.info(f"Training interrupted after {i} iterations due to timeout.")
-                break  # Exit the loop if timeout is signaled
+                all_cards = Card.get_all_cards()
+                random.shuffle(all_cards)
+                game_state = GameState(deck=all_cards) # Pass the shuffled deck to GameState
+                game_state.selected_cards = Hand(all_cards[:5])  # Сразу выбираем 5 карт
+                self.cfr(game_state, 1, 1, timeout_event, result, i + 1) # Передаем номер итерации
 
-            all_cards = Card.get_all_cards()
-            random.shuffle(all_cards)
-            game_state = GameState(deck=all_cards) # Pass the shuffled deck to GameState
-            game_state.selected_cards = Hand(all_cards[:5])  # Сразу выбираем 5 карт
-            self.cfr(game_state, 1, 1, timeout_event, result, i + 1) # Передаем номер итерации
-
-            if (i + 1) % self.save_interval == 0: # Check every save_interval iterations
-                logger.info(f"Iteration {i+1} of {self.iterations} complete. Saving progress...")
-                self.save_progress() # Сохраняем прогресс
-                if self.check_convergence():
-                    logger.info(f"CFR agent converged after {i + 1} iterations.")
-                    break
+                if (i + 1) % self.save_interval == 0: # Check every save_interval iterations
+                    logger.info(f"Iteration {i+1} of {self.iterations} complete. Saving progress...")
+                    self.save_progress() # Сохраняем прогресс
+                    if self.check_convergence():
+                        logger.info(f"CFR agent converged after {i + 1} iterations.")
+                        break
 
         def check_convergence(self):
             for node in self.nodes.values():
@@ -926,7 +925,6 @@ class CFRAgent:
                     score = Card.RANKS.index(cards[-1].rank) * 0.001
 
             return score
-
         def baseline_evaluation(self, state):
             """
             Улучшенная эвристическая оценка состояния игры.
@@ -1063,6 +1061,7 @@ class CFRAgent:
             else:
                 return 'high_card'
 
+
         def is_bottom_stronger_than_middle(self, state):
             """Проверяет, сильнее ли нижний ряд среднего."""
             if len(state.board.bottom) < 5 or len(state.board.middle) < 5:
@@ -1088,12 +1087,13 @@ class CFRAgent:
             if not state.board.is_full():
                 return True  # Если доска не заполнена, правило считается соблюденным
 
-            top_rank, _ = state.evaluate_hand(state.board.top)
+            top_rank, _ = self.evaluate_hand(state.board.top)
             middle_rank, _ = self.evaluate_hand(state.board.middle)
             bottom_rank, _ = self.evaluate_hand(state.board.bottom)
 
             # Чем меньше rank, тем сильнее комбинация.
             return bottom_rank <= middle_rank <= top_rank
+
 
         def save_progress(self):
             data = {
@@ -1110,6 +1110,7 @@ class CFRAgent:
                 self.nodes = data['nodes']
                 self.iterations = data['iterations']
                 self.stop_threshold = data.get('stop_threshold', 0.001) # Default value if not present
+
 
     class RandomAgent:
         def __init__(self):

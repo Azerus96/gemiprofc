@@ -677,10 +677,10 @@ class CFRAgent:
 
             if (i + 1) % self.save_interval == 0: # Check every save_interval iterations
                 logger.info(f"Iteration {i+1} of {self.iterations} complete. Saving progress...")
-                    self.save_progress() # Сохраняем прогресс
-                    if self.check_convergence():
-                        logger.info(f"CFR agent converged after {i + 1} iterations.")
-                        break
+                self.save_progress() # Сохраняем прогресс
+                if self.check_convergence():
+                    logger.info(f"CFR agent converged after {i + 1} iterations.")
+                    break
 
         def check_convergence(self):
             for node in self.nodes.values():

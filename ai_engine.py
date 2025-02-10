@@ -1,6 +1,6 @@
 import random
 import itertools
-from collections import defaultdict, Counter  # Counter добавлен
+from collections import defaultdict, Counter
 import utils
 from threading import Event, Thread
 import time
@@ -792,23 +792,23 @@ class CFRAgent:
                 if self.is_pair_potential(cards, available_cards):
                     potential += 0.3
 
-        return potential
+            return potential
 
-    def is_flush_potential(self, cards, available_cards):
-        """Checks if there's potential to make a flush."""
-        if len(cards) < 2:
-            return False
+        def is_flush_potential(self, cards, available_cards):
+            """Checks if there's potential to make a flush."""
+            if len(cards) < 2:
+                return False
 
-        suit_counts = defaultdict(int)
-        for card in cards:
-            suit_counts[card.suit] += 1
+            suit_counts = defaultdict(int)
+            for card in cards:
+                suit_counts[card.suit] += 1
 
-        for suit, count in suit_counts.items():
-            if count >= 2:  # At least 2 cards of the same suit
-                remaining_needed = 5 - count
-                available_of_suit = sum(1 for card in available_cards if card.suit == suit)
-                if available_of_suit >= remaining_needed:
-                    return True
+            for suit, count in suit_counts.items():
+                if count >= 2:  # At least 2 cards of the same suit
+                    remaining_needed = 5 - count
+                    available_of_suit = sum(1 for card in available_cards if card.suit == suit)
+                    if available_of_suit >= remaining_needed:
+                        return True
             return False
 
         def is_straight_potential(self, cards, available_cards):
@@ -1076,7 +1076,7 @@ class CFRAgent:
             if len(state.board.middle) < 5 or len(state.board.top) < 3:
                 return False
             middle_rank, _ = self.evaluate_hand(state.board.middle)
-            top_rank, _ = state.evaluate_hand(state.board.top)
+            top_rank, _ = self.evaluate_hand(state.board.top)
             return middle_rank <= top_rank
 
 

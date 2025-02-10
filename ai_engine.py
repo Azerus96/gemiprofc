@@ -265,6 +265,7 @@ class GameState:
 
         logger.debug(f"Generated actions: {actions}")
         return actions
+
     def is_valid_fantasy_entry(self, action):
         """Checks if an action leads to a valid fantasy mode entry."""
         new_board = Board()
@@ -614,53 +615,53 @@ class GameState:
             self.stop_threshold = stop_threshold
             self.save_interval = 100  # Сохраняем каждые 100 итераций
 
-            def cfr(self, game_state, p0, p1, timeout_event, result, iteration):
-        if timeout_event.is_set():
-            logger.info("CFR timed out!")
-            return 0
-
-        if game_state.is_terminal():
-            payoff = game_state.get_payoff()
-            logger.debug(f"cfr called in terminal state. Payoff: {payoff}")
-            return payoff
-
-        player = game_state.get_current_player()
-        info_set = game_state.get_information_set()
-        logger.debug(f"cfr called for info_set: {info_set}, player: {player}")
-
-        if info_set not in self.nodes:
-            actions = game_state.get_actions()
-            if not actions:
-                logger.debug("No actions available for this state.")
-                return 0
-            self.nodes[info_set] = CFRNode(actions)
-        node = self.nodes[info_set]
-
-        strategy = node.get_strategy(p0 if player == 0 else p1)
-        util = defaultdict(float)
-        node_util = 0
-
-        for a in node.actions:  # Вот здесь должен быть отступ!
+        def cfr(self, game_state, p0, p1, timeout_event, result, iteration):
             if timeout_event.is_set():
-                logger.info("CFR timed out during action loop!")
+                logger.info("CFR timed out!")
                 return 0
 
-            next_state = game_state.apply_action(a)
+            if game_state.is_terminal():
+                payoff = game_state.get_payoff()
+                logger.debug(f"cfr called in terminal state. Payoff: {payoff}")
+                return payoff
+
+            player = game_state.get_current_player()
+            info_set = game_state.get_information_set()
+            logger.debug(f"cfr called for info_set: {info_set}, player: {player}")
+
+            if info_set not in self.nodes:
+                actions = game_state.get_actions()
+                if not actions:
+                    logger.debug("No actions available for this state.")
+                    return 0
+                                self.nodes[info_set] = CFRNode(actions)
+            node = self.nodes[info_set]
+
+            strategy = node.get_strategy(p0 if player == 0 else p1)
+            util = defaultdict(float)
+            node_util = 0
+
+            for a in node.actions:  # Правильный отступ!
+                if timeout_event.is_set():
+                    logger.info("CFR timed out during action loop!")
+                    return 0
+
+                next_state = game_state.apply_action(a)
+                if player == 0:
+                    util[a] = -self.cfr(next_state, p0 * strategy[a], p1, timeout_event, result, iteration)
+                else:
+                    util[a] = -self.cfr(next_state, p0, p1 * strategy[a], timeout_event, result, iteration)
+                node_util += strategy[a] * util[a]
+
             if player == 0:
-                util[a] = -self.cfr(next_state, p0 * strategy[a], p1, timeout_event, result, iteration)
+                for a in node.actions:
+                    node.regret_sum[a] += p1 * (util[a] - node_util)
             else:
-                util[a] = -self.cfr(next_state, p0, p1 * strategy[a], timeout_event, result, iteration)
-            node_util += strategy[a] * util[a]
+                for a in node.actions:
+                    node.regret_sum[a] += p0 * (util[a] - node_util)
 
-        if player == 0:
-            for a in node.actions:
-                node.regret_sum[a] += p1 * (util[a] - node_util)
-        else:
-            for a in node.actions:
-                node.regret_sum[a] += p0 * (util[a] - node_util)
-
-        logger.debug(f"cfr returning for info_set: {info_set}, node_util: {node_util}")
-        return node_util
+            logger.debug(f"cfr returning for info_set: {info_set}, node_util: {node_util}")
+            return node_util
 
         def train(self, timeout_event, result):
             for i in range(self.iterations):
@@ -925,6 +926,7 @@ class GameState:
                     score = Card.RANKS.index(cards[-1].rank) * 0.001
 
             return score
+
         def baseline_evaluation(self, state):
             """
             Улучшенная эвристическая оценка состояния игры.
@@ -1061,7 +1063,6 @@ class GameState:
             else:
                 return 'high_card'
 
-
         def is_bottom_stronger_than_middle(self, state):
             """Проверяет, сильнее ли нижний ряд среднего."""
             if len(state.board.bottom) < 5 or len(state.board.middle) < 5:
@@ -1093,7 +1094,6 @@ class GameState:
 
             # Чем меньше rank, тем сильнее комбинация.
             return bottom_rank <= middle_rank <= top_rank
-
 
         def save_progress(self):
             data = {

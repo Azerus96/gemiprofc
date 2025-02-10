@@ -36,10 +36,10 @@ def initialize_ai_agent(ai_settings):
 
     if os.environ.get("AI_PROGRESS_TOKEN"):
         try:
-            cfr_agent.load_ai_progress_from_github() # ИСПРАВЛЕНО: load_progress -> load_ai_progress_from_github
+            cfr_agent.load_ai_progress_from_github()  # <-- Corrected method name
             logger.info("Прогресс AI успешно загружен.")
         except Exception as e:
-            logger.error(f"Ошибка загрузки прогресса AI: {e}")  #  будет ошибка, т.к. utils
+            logger.error(f"Ошибка загрузки прогресса AI: {e}")
     else:
         logger.info("AI_PROGRESS_TOKEN не установлен. Загрузка прогресса отключена.")
 

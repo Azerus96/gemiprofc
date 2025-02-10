@@ -1101,11 +1101,11 @@ class CFRAgent:
                 'iterations': self.iterations,
                 'stop_threshold': self.stop_threshold
             }
-            utils.save_ai_progress(data, 'cfr_data.pkl') # ИСПРАВЛЕНО
+            github_utils.save_ai_progress(data, 'cfr_data.pkl') # ИСПРАВЛЕНО
 
 
         def load_ai_progress_from_github(self): # ИЗМЕНЕНО ИМЯ МЕТОДА
-            data = utils.load_ai_progress('cfr_data.pkl') # ИСПРАВЛЕНО
+            data = github_utils.load_ai_progress('cfr_data.pkl') # ИСПРАВЛЕНО
             if data:
                 self.nodes = data['nodes']
                 self.iterations = data['iterations']

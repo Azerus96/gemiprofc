@@ -2,8 +2,8 @@ from flask import Flask, render_template, jsonify, session, request
 import os
 import ai_engine
 from ai_engine import CFRAgent, RandomAgent, Card
-import utils
-import github_utils
+import utils  #  utils.load_ai_progress!
+import github_utils  # github_utils.save_ai_progress_to_github
 import time
 import json
 from threading import Thread, Event
@@ -36,10 +36,10 @@ def initialize_ai_agent(ai_settings):
 
     if os.environ.get("AI_PROGRESS_TOKEN"):
         try:
-            cfr_agent.load_progress()
+            cfr_agent.load_progress() # Тут всё верно. Это *метод* класса CFRAgent.
             logger.info("Прогресс AI успешно загружен.")
         except Exception as e:
-            logger.error(f"Ошибка загрузки прогресса AI: {e}")
+            logger.error(f"Ошибка загрузки прогресса AI: {e}")  #  будет ошибка, т.к. utils
     else:
         logger.info("AI_PROGRESS_TOKEN не установлен. Загрузка прогресса отключена.")
 
@@ -288,7 +288,7 @@ def ai_move():
             # Сохранение прогресса AI (для MCCFR)
             if cfr_agent and ai_settings.get('aiType') == 'mccfr':
                 try:
-                    cfr_agent.save_progress()
+                    cfr_agent.save_progress() #Сохраняем локально
                     logger.info("Прогресс AI сохранен локально.")
                     if github_utils.save_ai_progress_to_github():  # Попытка сохранить на GitHub
                         logger.info("Прогресс AI сохранен на GitHub.")

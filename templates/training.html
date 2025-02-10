@@ -1,1041 +1,1131 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Training Mode</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            overflow-x: hidden;
-            min-height: 100vh;
-            padding-bottom: 150px;
-            box-sizing: border-box;
+import random
+import itertools
+from collections import defaultdict, Counter
+import utils
+from threading import Event, Thread
+import time
+import math
+import logging
+
+# Настройка логирования
+logger = logging.getLogger(__name__)
+
+class Card:
+    RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+    SUITS = ['♥', '♦', '♣', '♠']
+
+    def __init__(self, rank, suit):
+        if rank not in self.RANKS:
+            raise ValueError(f"Invalid rank: {rank}. Rank must be one of: {self.RANKS}")
+        if suit not in self.SUITS:
+            raise ValueError(f"Invalid suit: {suit}. Suit must be one of: {self.SUITS}")
+        self.rank = rank
+        self.suit = suit
+
+    def __repr__(self):
+        return f"{self.rank}{self.suit}"
+
+    def __eq__(self, other):
+        if isinstance(other, dict):
+            return self.rank == other.get('rank') and self.suit == other.get('suit')
+        return isinstance(other, Card) and self.rank == other.rank and self.suit == other.suit
+
+    def __hash__(self):
+        return hash((self.rank, self.suit))
+
+    def to_dict(self):
+        return {'rank': self.rank, 'suit': self.suit}
+
+    @staticmethod
+    def from_dict(card_dict):
+        return Card(card_dict['rank'], card_dict['suit'])
+
+    @staticmethod
+    def get_all_cards():
+        return [Card(rank, suit) for rank in Card.RANKS for suit in Card.SUITS]
+
+class Hand:
+    def __init__(self, cards=None):
+        self.cards = cards if cards is not None else []
+
+    def add_card(self, card):
+        if not isinstance(card, Card):
+            raise TypeError("card must be an instance of Card")
+        self.cards.append(card)
+
+    def remove_card(self, card):
+        if not isinstance(card, Card):
+            raise TypeError("card must be an instance of Card")
+        try:
+            self.cards.remove(card)
+        except ValueError:
+            print(f"Card {card} not found in hand: {self.cards}")
+
+    def __repr__(self):
+        return ', '.join(map(str, self.cards))
+
+    def __len__(self):
+        return len(self.cards)
+
+    def __iter__(self):
+        return iter(self.cards)
+
+    def __getitem__(self, index):
+        return self.cards[index]
+
+class Board:
+    def __init__(self):
+        self.top = []
+        self.middle = []
+        self.bottom = []
+
+    def place_card(self, line, card):
+        if line == 'top':
+            if len(self.top) >= 3:
+                raise ValueError("Top line is full")
+            self.top.append(card)
+        elif line == 'middle':
+            if len(self.middle) >= 5:
+                raise ValueError("Middle line is full")
+            self.middle.append(card)
+        elif line == 'bottom':
+            if len(self.bottom) >= 5:
+                raise ValueError("Bottom line is full")
+            self.bottom.append(card)
+        else:
+            raise ValueError(f"Invalid line: {line}. Line must be one of: 'top', 'middle', 'bottom'")
+
+    def is_full(self):
+        return len(self.top) == 3 and len(self.middle) == 5 and len(self.bottom) == 5
+
+    def clear(self):
+        self.top = []
+        self.middle = []
+        self.bottom = []
+
+    def __repr__(self):
+        return f"Top: {self.top}\nMiddle: {self.middle}\nBottom: {self.bottom}"
+
+    def get_cards(self, line):
+        if line == 'top':
+            return self.top
+        elif line == 'middle':
+            return self.middle
+        elif line == 'bottom':
+            return self.bottom
+        else:
+            raise ValueError("Invalid line specified")
+
+class GameState:
+    def __init__(self, selected_cards=None, board=None, discarded_cards=None, ai_settings=None, deck=None):
+        self.selected_cards = Hand(selected_cards) if selected_cards is not None else Hand()
+        self.board = board if board is not None else Board()
+        self.discarded_cards = discarded_cards if discarded_cards is not None else []
+        self.ai_settings = ai_settings if ai_settings is not None else {}
+        self.current_player = 0
+        self.deck = deck if deck is not None else self.create_deck() # Use provided deck or create a new one
+        self.rank_map = {rank: i for i, rank in enumerate(Card.RANKS)}
+        self.suit_map = {suit: i for i, suit in enumerate(Card.SUITS)}
+
+    def create_deck(self):
+        """Creates a standard deck of 52 cards."""
+        return [Card(rank, suit) for rank in Card.RANKS for suit in Card.SUITS]
+
+    def get_current_player(self):
+        return self.current_player
+
+    def is_terminal(self):
+        """Checks if the game is in a terminal state (all lines are full)."""
+        return self.board.is_full()
+
+    def get_num_cards_to_draw(self):
+        """Returns the number of cards to draw based on the current game state."""
+        placed_cards = sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom])
+        if placed_cards == 5:
+            return 3
+        elif placed_cards == 7 or placed_cards == 10: # Combined conditions for 7 and 10 cards
+            return 3
+        elif placed_cards >= 13:
+            return 0
+        else:
+            return 0
+
+    def get_available_cards(self):
+        """Returns a list of cards that are still available in the deck."""
+
+        used_cards = set(self.discarded_cards + self.board.top + self.board.middle + self.board.bottom + list(self.selected_cards))
+        available_cards = [card for card in self.deck if card not in used_cards]
+        return available_cards
+
+    def get_actions(self):
+        """Returns the valid actions for the current state."""
+        if self.is_terminal():
+            return []  # No actions in a terminal state
+
+        num_cards = len(self.selected_cards)
+        actions = []
+        placement_mode = self.ai_settings.get('placementMode', 'standard') # По умолчанию стандартный режим
+
+        logger.debug(f"get_actions called - num_cards: {num_cards}, selected_cards: {self.selected_cards}, board: {self.board}, placement_mode: {placement_mode}")
+
+        if num_cards > 0:
+            try:
+                if placement_mode == "first_deal":  # Первая раздача (5 карт)
+                    # Размещаем все 5 карт
+                    for p in itertools.permutations(self.selected_cards.cards):
+                        actions.append({
+                            'top': list(p[:1]),
+                            'middle': list(p[1:3]),
+                            'bottom': list(p[3:5]),
+                            'discarded': None  # Ничего не сбрасываем
+                        })
+
+                elif placement_mode == "standard":  # Стандартный ход (3 карты)
+                    # Размещаем 2 карты, 1 сбрасываем
+                    for discarded_index in range(3):
+                        remaining_cards = [card for i, card in enumerate(self.selected_cards.cards) if i != discarded_index]
+                        for top_count in range(min(len(remaining_cards) + 1, 3 - len(self.board.top))):
+                            for middle_count in range(min(len(remaining_cards) - top_count + 1, 5 - len(self.board.middle))):
+                                bottom_count = len(remaining_cards) - top_count - middle_count
+                                if bottom_count <= (5 - len(self.board.bottom)):
+                                    action = {
+                                        'top': remaining_cards[:top_count],
+                                        'middle': remaining_cards[top_count:top_count + middle_count],
+                                        'bottom': remaining_cards[top_count + middle_count:],
+                                        'discarded': self.selected_cards.cards[discarded_index]
+                                    }
+                                    actions.append(action)
+                elif placement_mode == "fantasy":
+                    # ... (логика для фантазии) ...
+                    if self.ai_settings.get('fantasyMode'):
+                        valid_fantasy_repeats = []
+                        for p in itertools.permutations(self.selected_cards.cards):
+                            action = {
+                                'top': list(p[:3]),
+                                'middle': list(p[3:8]),
+                                'bottom': list(p[8:13]),
+                                'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                            }
+                            if self.is_valid_fantasy_repeat(action):
+                                valid_fantasy_repeats.append(action)
+                        if valid_fantasy_repeats:
+                            actions = sorted(valid_fantasy_repeats, key=lambda a: self.calculate_action_royalty(a), reverse=True)
+                        else:  # Если повтор фантазии невозможен
+                            actions = sorted([
+                                {
+                                    'top': list(p[:3]),
+                                    'middle': list(p[3:8]),
+                                    'bottom': list(p[8:13]),
+                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                                } for p in itertools.permutations(self.selected_cards.cards)
+                            ], key=lambda a: self.calculate_action_royalty(a), reverse=True)
+
+                    else: # Если не в режиме фантазии, то проверяем можем ли войти
+                        valid_fantasy_entries = []
+                        for p in itertools.permutations(self.selected_cards.cards):
+                                action = {
+                                    'top': list(p[:3]),
+                                    'middle': list(p[3:8]),
+                                    'bottom': list(p[8:13]),
+                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                                }
+                                if self.is_valid_fantasy_entry(action):
+                                    valid_fantasy_entries.append(action)
+
+                        if valid_fantasy_entries: # Если можем войти в фантазию, предлагаем эти варианты
+                            actions = valid_fantasy_entries
+                        else: # Не можем войти в фантазию
+                            actions = [
+                                {
+                                    'top': list(p[:3]),
+                                    'middle': list(p[3:8]),
+                                    'bottom': list(p[8:13]),
+                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                                } for p in itertools.permutations(self.selected_cards.cards)
+                            ]
+
+                elif placement_mode == "free":  # Свободный режим
+                    # Размещаем *все* выбранные карты, если возможно
+                    remaining_cards = list(self.selected_cards.cards)
+                    for top_count in range(min(len(remaining_cards) + 1, 3 - len(self.board.top))):
+                        for middle_count in range(min(len(remaining_cards) - top_count + 1, 5 - len(self.board.middle))):
+                            bottom_count = len(remaining_cards) - top_count - middle_count
+                            if bottom_count <= (5 - len(self.board.bottom)):
+                                action = {
+                                    'top': remaining_cards[:top_count],
+                                    'middle': remaining_cards[top_count:top_count + middle_count],
+                                    'bottom': remaining_cards[top_count + middle_count:],
+                                    'discarded': None  # Ничего не сбрасываем
+                                }
+                                actions.append(action)
+
+            except Exception as e:
+                logger.exception(f"Error in get_actions: {e}")
+                return []
+
+        logger.debug(f"Generated actions: {actions}")
+        return actions
+    def is_valid_fantasy_entry(self, action):
+        """Checks if an action leads to a valid fantasy mode entry."""
+        new_board = Board()
+        new_board.top = self.board.top + action.get('top', [])
+        new_board.middle = self.board.middle + action.get('middle', [])
+        new_board.bottom = self.board.bottom + action.get('bottom', [])
+
+        temp_state = GameState(board=new_board, ai_settings=self.ai_settings)
+        if temp_state.is_dead_hand():
+            return False
+
+        top_rank, _ = temp_state.evaluate_hand(new_board.top)
+        return top_rank <= 8 and new_board.top[0].rank in ['Q', 'K', 'A']
+
+    def is_valid_fantasy_repeat(self, action):
+        """Checks if an action leads to a valid fantasy mode repeat."""
+        new_board = Board()
+        new_board.top = self.board.top + action.get('top', [])
+        new_board.middle = self.board.middle + action.get('middle', [])
+        new_board.bottom = self.board.bottom + action.get('bottom', [])
+
+        temp_state = GameState(board=new_board, ai_settings=self.ai_settings)
+        if temp_state.is_dead_hand():
+            return False
+
+        top_rank, _ = temp_state.evaluate_hand(new_board.top)
+        bottom_rank, _ = temp_state.evaluate_hand(new_board.bottom)
+
+        if top_rank == 7:  # Set in top row
+            return True
+        if bottom_rank <= 3:  # Four of a Kind or better in bottom row
+            return True
+
+        return False
+
+    def calculate_action_royalty(self, action):
+        """Calculates the royalty for a given action."""
+        new_board = Board()
+        new_board.top = self.board.top + action.get('top', [])
+        new_board.middle = self.board.middle + action.get('middle', [])
+        new_board.bottom = self.board.bottom + action.get('bottom', [])
+
+        temp_state = GameState(board=new_board, ai_settings=self.ai_settings)
+        return temp_state.calculate_royalties()
+
+    def apply_action(self, action):
+        """Applies an action to the current state and returns the new state."""
+
+        new_board = Board()
+        new_board.top = self.board.top + action.get('top', [])
+        new_board.middle = self.board.middle + action.get('middle', [])
+        new_board.bottom = self.board.bottom + action.get('bottom', [])
+
+        new_discarded_cards = self.discarded_cards[:]
+        if 'discarded' in action and action['discarded']:
+            if isinstance(action['discarded'], list):
+                new_discarded_cards.extend(action['discarded'])
+            else:
+                new_discarded_cards.append(action['discarded'])
+
+        new_game_state = GameState(
+            selected_cards=Hand(),  # Selected cards are now on the board or discarded
+            board=new_board,
+            discarded_cards=new_discarded_cards,
+            ai_settings=self.ai_settings,
+            deck=self.deck[:] # Pass a copy of the deck
+        )
+
+        return new_game_state
+
+    def get_information_set(self):
+        """Returns a string representation of the current information set."""
+
+        def card_to_string(card):
+            return str(card)
+
+        def sort_cards(cards):
+            return sorted(cards, key=lambda card: (self.rank_map[card.rank], self.suit_map[card.suit]))
+
+        top_str = ','.join(map(card_to_string, sort_cards(self.board.top)))
+        middle_str = ','.join(map(card_to_string, sort_cards(self.board.middle)))
+        bottom_str = ','.join(map(card_to_string, sort_cards(self.board.bottom)))
+        discarded_str = ','.join(map(card_to_string, sort_cards(self.discarded_cards)))
+        selected_str = ','.join(map(card_to_string, sort_cards(self.selected_cards.cards)))
+
+
+        return f"T:{top_str}|M:{middle_str}|B:{bottom_str}|D:{discarded_str}|S:{selected_str}"
+
+    def get_payoff(self):
+        """Calculates the payoff for the current state."""
+        if not self.is_terminal():
+            raise ValueError("Game is not in a terminal state")
+
+        if self.is_dead_hand():
+            return -self.calculate_royalties()  # Negative royalties for a dead hand
+
+        return self.calculate_royalties()
+
+    def is_dead_hand(self):
+        """Checks if the hand is a dead hand (invalid combination order)."""
+        if not self.board.is_full():
+            return False
+
+        top_rank, _ = self.evaluate_hand(self.board.top)
+        middle_rank, _ = self.evaluate_hand(self.board.middle)
+        bottom_rank, _ = self.evaluate_hand(self.board.bottom)
+
+        return top_rank > middle_rank or middle_rank > bottom_rank
+
+    def get_line_royalties(self, line):
+        """Calculates royalties for a specific line."""
+        cards = getattr(self.board, line)
+        if not cards:
+            return 0
+
+        rank, _ = self.evaluate_hand(cards)
+        if line == 'top':
+            if rank == 7:  # Three of a Kind
+                return 10 + Card.RANKS.index(cards[0].rank)
+            elif rank == 8:  # One Pair
+                return self.get_pair_bonus(cards)
+            elif rank == 9:  # High Card
+                return self.get_high_card_bonus(cards)
+        elif line == 'middle':
+            if rank <= 6:
+                return self.get_royalties_for_hand(rank) * 2
+        elif line == 'bottom':
+            if rank <= 6:
+                return self.get_royalties_for_hand(rank)
+        return 0
+
+    def calculate_royalties(self):
+        """Calculates royalties for the current state based on the rules."""
+        if self.is_dead_hand():
+            return 0
+
+        royalties = {}
+        lines = {'top': self.board.top, 'middle': self.board.middle, 'bottom': self.board.bottom}
+
+        for line_name, cards in lines.items():
+            royalties[line_name] = self.get_line_royalties(line_name)
+
+        return royalties
+
+    def get_royalties_for_hand(self, hand_rank):
+        if hand_rank == 1: # Royal Flush
+            return 25
+        elif hand_rank == 2: # Straight Flush
+            return 15
+        elif hand_rank == 3: # Four of a Kind
+            return 10
+        elif hand_rank == 4: # Full House
+            return 6
+        elif hand_rank == 5: # Flush
+            return 4
+        elif hand_rank == 6: # Straight
+            return 2
+        return 0
+
+    def get_line_score(self, line, cards):
+        """Calculates the score for a specific line based on hand rankings."""
+        if not cards:
+            return 0
+
+        rank, score = self.evaluate_hand(cards)
+        return score
+
+    def get_pair_bonus(self, cards):
+        """Calculates the bonus for a pair in the top line."""
+        if len(cards) != 3:
+            return 0
+        ranks = [card.rank for card in cards]
+        for rank in Card.RANKS[::-1]:  # Iterate in reverse to find the highest pair first
+            if ranks.count(rank) == 2:
+                return 1 + Card.RANKS.index(rank) - Card.RANKS.index('6') if rank >= '6' else 0
+
+    def get_high_card_bonus(self, cards):
+        """Calculates the bonus for a high card in the top line."""
+        if len(cards) != 3 or not all(isinstance(card, Card) for card in cards):
+            return 0
+        ranks = [card.rank for card in cards]
+        if len(set(ranks)) == 3:  # Three different ranks
+            high_card = max(ranks, key=Card.RANKS.index)
+            return 1 if high_card == 'A' else 0
+
+    def get_fantasy_bonus(self):
+        """Calculates the bonus for fantasy mode."""
+        bonus = 0
+        top_rank, _ = self.evaluate_hand(self.board.top)
+
+        if top_rank <= 8 and self.board.top[0].rank in ['Q', 'K', 'A']: # QQ, KK, AA and better
+            if self.ai_settings.get('fantasyType') == 'progressive':
+                if self.board.top[0].rank == 'Q':
+                    bonus += 14 # 14 cards for QQ
+                elif self.board.top[0].rank == 'K':
+                    bonus += 15 # 15 cards for KK
+                elif self.board.top[0].rank == 'A':
+                    bonus += 16 # 16 cards for AA
+                elif top_rank == 7: # Set
+                    bonus += 17 # 17 cards for set from 222 to AAA
+            else: # Normal fantasy
+                bonus += 14 # 14 cards
+
+            if self.is_fantasy_repeat():
+                bonus += 14 # Fantasy repeat - 14 cards (regardless of type)
+
+        return bonus
+
+    def is_fantasy_repeat(self):
+        """Checks if the conditions for fantasy repeat are met."""
+        top_rank, _ = self.evaluate_hand(self.board.top)
+        bottom_rank, _ = self.evaluate_hand(self.board.bottom)
+
+        if top_rank == 7: # Set in top row
+            return True
+        if bottom_rank <= 3: # Four of a Kind or better in bottom row
+            return True
+
+        return False
+
+    def evaluate_hand(self, cards):
+        """Evaluates the hand and returns a rank (lower is better) and a score."""
+
+        if not cards or not all(isinstance(card, Card) for card in cards):
+            return 11, 0 # Return a low rank for invalid hands
+
+        n = len(cards)
+        if n == 5:
+            if self.is_royal_flush(cards):
+                return 1, 25
+            if self.is_straight_flush(cards):
+                return 2, 15
+            if self.is_four_of_a_kind(cards):
+                rank = [card.rank for card in cards if [card.rank for card in cards].count(card.rank) == 4][0]
+                return 3, 10 + Card.RANKS.index(rank) / 100
+            if self.is_full_house(cards):
+                rank = [card.rank for card in cards if [card.rank for card in cards].count(card.rank) == 3][0]
+                return 4, 6 + Card.RANKS.index(rank) / 100
+            if self.is_flush(cards):
+                score = 4 + sum(Card.RANKS.index(card.rank) for card in cards) / 1000  # Adjusted score for Flush
+                return 5, score
+            if self.is_straight(cards):
+                score = 2 + sum(Card.RANKS.index(card.rank) for card in cards) / 1000  # Adjusted score for Straight
+                return 6, score
+            if self.is_three_of_a_kind(cards):
+                rank = [card.rank for card in cards if [card.rank for card in cards].count(card.rank) == 3][0]
+                return 7, 2 + Card.RANKS.index(rank) / 100
+            if self.is_two_pair(cards):
+                ranks = sorted([Card.RANKS.index(card.rank) for card in cards if [card.rank for card in cards].count(card.rank) == 2], reverse=True)
+                return 8, sum(ranks) / 1000  # Adjusted score for Two Pair
+            if self.is_one_pair(cards):
+                rank = [card.rank for card in cards if [card.rank for card in cards].count(card.rank) == 2][0]
+                return 9, Card.RANKS.index(rank) / 1000  # Adjusted score for One Pair
+            # High Card
+            score = sum(Card.RANKS.index(card.rank) for card in cards) / 10000 # Adjusted score for High Card
+            return 10, score
+
+        elif n == 3:
+            if self.is_three_of_a_kind(cards):
+                rank = cards[0].rank  # All cards have the same rank in a set
+                return 7, 10 + Card.RANKS.index(rank)
+            if self.is_one_pair(cards):
+                rank = [card.rank for card in cards if [card.rank for card in cards].count(card.rank) == 2][0]
+                return 8, self.get_pair_bonus(cards)  # Use pair bonus for 3-card hands
+            # High Card
+            return 9, self.get_high_card_bonus(cards) # Use high card bonus for 3-card hands
+
+        else:
+            return 11, 0  # Return a low rank for invalid hands
+
+    def is_royal_flush(self, cards):
+        if not self.is_flush(cards):
+            return False
+        ranks = sorted([Card.RANKS.index(card.rank) for card in cards])
+        return ranks == [8, 9, 10, 11, 12]  # 10, J, Q, K, A
+
+    def is_straight_flush(self, cards):
+        return self.is_straight(cards) and self.is_flush(cards)
+
+    def is_four_of_a_kind(self, cards):
+        ranks = [card.rank for card in cards]
+        return any(ranks.count(r) == 4 for r in ranks)
+
+    def is_full_house(self, cards):
+        ranks = [card.rank for card in cards]
+        return any(ranks.count(r) == 3 for r in ranks) and any(ranks.count(r) == 2 for r in ranks)
+
+    def is_flush(self, cards):
+        suits = [card.suit for card in cards]
+        return len(set(suits)) == 1
+
+    def is_straight(self, cards):
+        ranks = sorted([Card.RANKS.index(card.rank) for card in cards])
+        if ranks == [0, 1, 2, 3, 12]:  # Special case for A, 2, 3, 4, 5
+            return True
+        return all(ranks[i + 1] - ranks[i] == 1 for i in range(len(ranks) - 1))
+
+    def is_three_of_a_kind(self, cards):
+        ranks = [card.rank for card in cards]
+        return any(ranks.count(r) == 3 for r in ranks)
+
+    def is_two_pair(self, cards):
+        ranks = [card.rank for card in cards]
+        pairs = [r for r in set(ranks) if ranks.count(r) == 2]
+        return len(pairs) == 2
+
+    def is_one_pair(self, cards):
+        ranks = [card.rank for card in cards]
+        return any(ranks.count(r) == 2 for r in ranks)
+
+class CFRNode:
+    def __init__(self, actions):
+        self.regret_sum = defaultdict(float)
+        self.strategy_sum = defaultdict(float)
+        self.actions = actions
+
+    def get_strategy(self, realization_weight):
+        normalizing_sum = 0
+        strategy = defaultdict(float)
+        for a in self.actions:
+            strategy[a] = self.regret_sum[a] if self.regret_sum[a] > 0 else 0
+            normalizing_sum += strategy[a]
+
+        for a in self.actions:
+            if normalizing_sum > 0:
+                strategy[a] /= normalizing_sum
+            else:
+                strategy[a] = 1.0 / len(self.actions)
+            self.strategy_sum[a] += realization_weight * strategy[a]
+        return strategy
+
+    def get_average_strategy(self):
+        avg_strategy = defaultdict(float)
+        normalizing_sum = sum(self.strategy_sum.values())
+        if normalizing_sum > 0:
+            for a in self.actions:
+                avg_strategy[a] = self.strategy_sum[a] / normalizing_sum
+        else:
+            for a in self.actions:
+                avg_strategy[a] = 1.0 / len(self.actions)
+        return avg_strategy
+
+class CFRAgent:
+    def __init__(self, iterations=1000, stop_threshold=0.001):
+        self.nodes = {}
+        self.iterations = iterations
+        self.stop_threshold = stop_threshold
+        self.save_interval = 100  # Сохраняем каждые 100 итераций
+
+    def cfr(self, game_state, p0, p1, timeout_event, result, iteration):
+        if timeout_event.is_set():
+            logger.info("CFR timed out!")
+            return 0
+
+        if game_state.is_terminal():
+            payoff = game_state.get_payoff()
+            logger.debug(f"cfr called in terminal state. Payoff: {payoff}")
+            return payoff
+
+        player = game_state.get_current_player()
+        info_set = game_state.get_information_set()
+        logger.debug(f"cfr called for info_set: {info_set}, player: {player}")
+
+        if info_set not in self.nodes:
+            actions = game_state.get_actions()
+            if not actions:
+                logger.debug("No actions available for this state.")
+                return 0
+            self.nodes[info_set] = CFRNode(actions)
+        node = self.nodes[info_set]
+
+        strategy = node.get_strategy(p0 if player == 0 else p1)
+        util = defaultdict(float)
+        node_util = 0
+
+        for a in node.actions:  # Правильный отступ!
+            if timeout_event.is_set():
+                logger.info("CFR timed out during action loop!")
+                return 0
+
+            next_state = game_state.apply_action(a)
+            if player == 0:
+                util[a] = -self.cfr(next_state, p0 * strategy[a], p1, timeout_event, result, iteration)
+            else:
+                util[a] = -self.cfr(next_state, p0, p1 * strategy[a], timeout_event, result, iteration)
+            node_util += strategy[a] * util[a]
+
+        if player == 0:
+            for a in node.actions:
+                node.regret_sum[a] += p1 * (util[a] - node_util)
+        else:
+            for a in node.actions:
+                node.regret_sum[a] += p0 * (util[a] - node_util)
+
+        logger.debug(f"cfr returning for info_set: {info_set}, node_util: {node_util}")
+        return node_util
+
+    def train(self, timeout_event, result):
+        for i in range(self.iterations):
+            if timeout_event.is_set():
+                logger.info(f"Training interrupted after {i} iterations due to timeout.")
+                break  # Exit the loop if timeout is signaled
+
+            all_cards = Card.get_all_cards()
+            random.shuffle(all_cards)
+            game_state = GameState(deck=all_cards) # Pass the shuffled deck to GameState
+            game_state.selected_cards = Hand(all_cards[:5])  # Сразу выбираем 5 карт
+            self.cfr(game_state, 1, 1, timeout_event, result, i + 1) # Передаем номер итерации
+
+            if (i + 1) % self.save_interval == 0: # Check every save_interval iterations
+                logger.info(f"Iteration {i+1} of {self.iterations} complete. Saving progress...")
+                self.save_progress() # Сохраняем прогресс
+                if self.check_convergence():
+                    logger.info(f"CFR agent converged after {i + 1} iterations.")
+                    break
+
+    def check_convergence(self):
+        for node in self.nodes.values():
+            avg_strategy = node.get_average_strategy()
+            for action, prob in avg_strategy.items():
+                if abs(prob - 1.0 / len(node.actions)) > self.stop_threshold:
+                    return False
+            return True
+
+    def get_move(self, game_state, timeout_event, result):  # убрали num_cards
+        logger.debug("Inside get_move")
+        actions = game_state.get_actions()
+        logger.debug(f"Available actions: {actions}")
+
+        if not actions:
+            result['move'] = {'error': 'Нет доступных ходов'}
+            logger.debug("No actions available, returning error.")
+            return
+
+        info_set = game_state.get_information_set()
+        logger.debug(f"Info set: {info_set}")
+
+        if info_set in self.nodes:
+            strategy = self.nodes[info_set].get_average_strategy()
+            logger.debug(f"Strategy: {strategy}")
+            best_move = max(strategy, key=strategy.get) if strategy else None
+        else:
+            logger.debug("Info set not found in nodes, choosing random action.")
+            best_move = random.choice(actions) if actions else None
+
+        logger.debug(f"Selected move: {best_move}")
+        result['move'] = best_move
+
+
+    def evaluate_move(self, game_state, action, timeout_event):
+        """
+        Оценивает ход, используя комбинацию обученной стратегии MCCFR и эвристики.
+        """
+        next_state = game_state.apply_action(action)  # Применяем действие
+        info_set = next_state.get_information_set()    # Получаем инфосет
+
+        if info_set in self.nodes:
+            # Если узел есть в памяти MCCFR, используем его стратегию
+            node = self.nodes[info_set]
+            strategy = node.get_average_strategy()
+            expected_value = 0
+            for a, prob in strategy.items():
+                if timeout_event.is_set():
+                    return 0  # Return 0 if timeout occurred
+                expected_value += prob * self.get_action_value(next_state, a, timeout_event)
+            return expected_value
+        else:
+            # Если узла нет, используем shallow_search с baseline_evaluation
+            return self.shallow_search(next_state, 2, timeout_event)
+
+    def shallow_search(self, state, depth, timeout_event):
+        """
+        Поверхностный поиск с ограниченной глубиной.
+        """
+        if depth == 0 or state.is_terminal() or timeout_event.is_set():
+            return self.baseline_evaluation(state) # Используем новую baseline_evaluation
+
+        best_value = float('-inf')
+        for action in state.get_actions():
+            if timeout_event.is_set():
+                return 0  # Return 0 if timeout occurred
+            value = -self.shallow_search(state.apply_action(action), depth - 1, timeout_event)
+            best_value = max(best_value, value)
+        return best_value
+
+    def get_action_value(self, state, action, timeout_event):
+        """
+        Оценивает ценность действия, усредняя результаты нескольких симуляций.
+        """
+        num_simulations = 10
+        total_score = 0
+
+        for _ in range(num_simulations):
+            if timeout_event.is_set():
+                return 0  # Return 0 if timeout occurred
+            simulated_state = state.apply_action(action)
+            while not simulated_state.is_terminal():
+                actions = simulated_state.get_actions()
+                if not actions:
+                    break  # No valid actions available
+                random_action = random.choice(actions)
+                simulated_state = simulated_state.apply_action(random_action)
+            total_score += self.baseline_evaluation(simulated_state) # Используем новую
+
+        return total_score / num_simulations if num_simulations > 0 else 0
+
+
+    def calculate_potential(self, cards, line, board, available_cards):
+        """Calculates the potential for improvement of a given hand."""
+        potential = 0
+        num_cards = len(cards)
+
+        if num_cards < 5 and line != 'top':
+            # Check for straight potential
+            if self.is_straight_potential(cards, available_cards):
+                potential += 0.5
+
+            # Check for flush potential
+            if self.is_flush_potential(cards, available_cards):
+                potential += 0.7
+
+            if num_cards == 2 and line == 'top':
+                # Check for pair potential to make a set
+                if self.is_pair_potential(cards, available_cards):
+                    potential += 0.3
+
+        return potential
+
+    def is_flush_potential(self, cards, available_cards):
+        """Checks if there's potential to make a flush."""
+        if len(cards) < 2:
+            return False
+
+        suit_counts = defaultdict(int)
+        for card in cards:
+            suit_counts[card.suit] += 1
+
+        for suit, count in suit_counts.items():
+            if count >= 2:  # At least 2 cards of the same suit
+                remaining_needed = 5 - count
+                available_of_suit = sum(1 for card in available_cards if card.suit == suit)
+            if available_of_suit >= remaining_needed:
+                return True
+        return False
+
+    def is_straight_potential(self, cards, available_cards):
+        """Checks if there's potential to make a straight."""
+        if len(cards) < 2:
+            return False
+
+        ranks = sorted([Card.RANKS.index(card.rank) for card in cards])
+        # Check for consecutive ranks
+        for i in range(len(ranks) - 1):
+            if ranks[i + 1] - ranks[i] == 1:
+                return True
+
+        # Check for one-gap straights (e.g., 2, 4, 5 or 7, 9, 10)
+        if len(ranks) >= 2:
+            for i in range(len(ranks) - 1):
+                if ranks[i + 1] - ranks[i] == 2:
+                    needed_rank = ranks[i] + 1
+                    if any(Card.RANKS.index(card.rank) == needed_rank for card in available_cards):
+                        return True
+
+        # Check for two-gap straights (e.g., 2, 5 or 6, 9)
+        if len(ranks) >= 2:
+            for i in range(len(ranks) - 1):
+                if ranks[i + 1] - ranks[i] == 3:
+                    needed_ranks = [ranks[i] + 1, ranks[i] + 2]
+                    if sum(1 for card in available_cards if Card.RANKS.index(card.rank) in needed_ranks) >= 1:
+                        return True
+
+        # Special case for A, 2, 3, 4, 5 straight
+        if ranks == [0, 1, 2, 3]:
+            if any(card.rank == 'A' for card in available_cards):
+                return True
+        if ranks == [0, 1, 2, 12]:
+            if any(card.rank == '3' for card in available_cards):
+                return True
+        if ranks == [0, 1, 11, 12]:
+            if any(card.rank == '2' for card in available_cards):
+                return True
+        if ranks == [0, 10, 11, 12]:
+            if any(card.rank == '1' for card in available_cards):
+                return True
+
+        return False
+
+    def is_pair_potential(self, cards, available_cards):
+        """Checks if there's potential to make a set (three of a kind) from a pair."""
+        if len(cards) != 2:
+            return False
+
+        if cards[0].rank == cards[1].rank:
+            rank = cards[0].rank
+            if sum(1 for card in available_cards if card.rank == rank) >= 1:
+                return True
+
+        return False
+
+    def evaluate_line_strength(self, cards, line):
+        """Evaluates the strength of a line with more granularity."""
+        if not cards:
+            return 0
+
+        rank, _ = self.evaluate_hand(cards)
+        score = 0
+
+        if line == 'top':
+            if rank == 7:  # Three of a Kind
+                score = 15 + Card.RANKS.index(cards[0].rank) * 0.1
+            elif rank == 8:  # One Pair
+                score = 5 + self.get_pair_bonus(cards)
+            elif rank == 9:  # High Card
+                score = 1 + self.get_high_card_bonus(cards)
+        elif line == 'middle':
+            if rank == 1:  # Royal Flush
+                score = 150
+            elif rank == 2:  # Straight Flush
+                score = 100 + Card.RANKS.index(cards[-1].rank) * 0.1  # High card matters
+            elif rank == 3:  # Four of a Kind
+                score = 80 + Card.RANKS.index(cards[1].rank) * 0.1
+            elif rank == 4:  # Full House
+                score = 60 + Card.RANKS.index(cards[2].rank) * 0.1  # Rank of the three-of-a-kind
+            elif rank == 5:  # Flush
+                score = 40 + Card.RANKS.index(cards[-1].rank) * 0.1  # High card matters
+            elif rank == 6:  # Straight
+                score = 20 + Card.RANKS.index(cards[-1].rank) * 0.1  # High card matters
+            elif rank == 7:  # Three of a Kind
+                score = 10 + Card.RANKS.index(cards[0].rank) * 0.1
+            elif rank == 8:  # Two Pair
+                score = 5 + Card.RANKS.index(cards[1].rank) * 0.01 + Card.RANKS.index(cards[3].rank) * 0.001
+            elif rank == 9:  # One Pair
+                score = 2 + Card.RANKS.index(cards[1].rank) * 0.01
+            elif rank == 10:  # High Card
+                score = Card.RANKS.index(cards[-1].rank) * 0.001
+        elif line == 'bottom':
+            # Similar scoring as middle line, but with slightly lower weights
+            if rank == 1:  # Royal Flush
+                score = 120
+            elif rank == 2:  # Straight Flush
+                score = 80 + Card.RANKS.index(cards[-1].rank) * 0.1
+            elif rank == 3:  # Four of a Kind
+                score = 60 + Card.RANKS.index(cards[1].rank) * 0.1
+            elif rank == 4:  # Full House
+                score = 40 + Card.RANKS.index(cards[2].rank) * 0.1
+            elif rank == 5:  # Flush
+                score = 30 + Card.RANKS.index(cards[-1].rank) * 0.1
+            elif rank == 6:  # Straight
+                score = 15 + Card.RANKS.index(cards[-1].rank) * 0.1
+            elif rank == 7:  # Three of a Kind
+                score = 8 + Card.RANKS.index(cards[0].rank) * 0.1
+            elif rank == 8:  # Two Pair
+                score = 4 + Card.RANKS.index(cards[1].rank) * 0.01 + Card.RANKS.index(cards[3].rank) * 0.001
+            elif rank == 9:  # One Pair
+                score = 1 + Card.RANKS.index(cards[1].rank) * 0.01
+            elif rank == 10:  # High Card
+                score = Card.RANKS.index(cards[-1].rank) * 0.001
+
+        return score
+
+    def baseline_evaluation(self, state):
+        """
+        Улучшенная эвристическая оценка состояния игры.
+        """
+        if state.is_dead_hand():
+            return -1000  # Существенный штраф за мертвую руку
+
+        COMBINATION_WEIGHTS = {
+            'royal_flush': 100,
+            'straight_flush': 90,
+            'four_of_a_kind': 80,
+            'full_house': 70,
+            'flush': 60,
+            'straight': 50,
+            'three_of_a_kind': 40,
+            'two_pair': 30,
+            'pair': 20,
+            'high_card': 10
         }
 
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            position: sticky;
-            top: 0;
-            z-index: 1001;
-            background: #f0f0f0;
-            padding: 10px;
+        ROW_MULTIPLIERS = {
+            'top': 1.0,
+            'middle': 1.2,
+            'bottom': 1.5
         }
 
-        button {
-            padding: 12px 24px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        total_score = 0
+
+        def evaluate_partial_combination(cards, row_type):
+            """Оценка потенциала неполной комбинации"""
+            if not cards:
+                return 0
+
+            score = 0
+            ranks = [card.rank for card in cards]
+            suits = [card.suit for card in cards]
+
+            # Потенциал флеша
+            suit_counts = Counter(suits)
+            max_suit_count = max(suit_counts.values()) if suit_counts else 0
+            if row_type in ['middle', 'bottom']:
+                if max_suit_count >= 3:
+                    score += 15 * max_suit_count
+
+            # Потенциал стрита
+            rank_values = sorted([Card.RANKS.index(rank) for rank in ranks])
+            if len(rank_values) >= 3:
+                gaps = sum(rank_values[i+1] - rank_values[i] - 1 for i in range(len(rank_values)-1))
+                if gaps <= 2:  # Возможность собрать стрит
+                    score += 10 * (5 - gaps)
+
+            # Оценка парных комбинаций
+            rank_counts = Counter(ranks)
+            for rank, count in rank_counts.items():
+                rank_value = Card.RANKS.index(rank)
+                if count == 2:
+                    score += 20 + rank_value
+                elif count == 3:
+                    score += 40 + rank_value * 1.5
+
+            return score
+
+        # Оценка по рядам
+        rows = {'top': state.board.top, 'middle': state.board.middle, 'bottom': state.board.bottom}
+        for row_name, cards in rows.items():
+            row_score = 0
+
+            # Определение текущей комбинации
+            combination = self.identify_combination(cards)
+            if combination:
+                row_score += COMBINATION_WEIGHTS[combination]
+
+            # Оценка потенциала неполной комбинации
+            potential_score = evaluate_partial_combination(cards, row_name)
+            row_score += potential_score
+
+            # Штраф за неправильное количество карт
+            max_cards = {'top': 3, 'middle': 5, 'bottom': 5}
+            if len(cards) > max_cards[row_name]:
+                row_score -= 50
+
+            # Применяем множитель ряда
+            row_score *= ROW_MULTIPLIERS[row_name]
+
+            total_score += row_score
+
+        # Дополнительные стратегические бонусы
+        if self.is_bottom_stronger_than_middle(state):
+            total_score += 30
+        if self.is_middle_stronger_than_top(state):
+            total_score += 20
+
+        # Штраф за нарушение правила силы рядов
+        if not self.check_row_strength_rule(state):
+            total_score -= 100
+
+        # Учет сброшенных карт
+        for card in state.discarded_cards:
+            rank_value = Card.RANKS.index(card.rank)
+            total_score -= rank_value * 0.5  # Небольшой штраф за сброс высоких карт
+
+        return total_score
+
+    def identify_combination(self, cards):
+        """Определяет тип комбинации."""
+        if not cards:
+            return None
+        if len(cards) < 3 and len(cards) !=5 : # добавили and len(cards) !=5
+            return None
+        if len(cards) == 3:
+            if self.is_three_of_a_kind(cards):
+                return 'three_of_a_kind'
+            if self.is_one_pair(cards):
+                return 'pair'
+            else: return 'high_card'
+        if self.is_royal_flush(cards):
+            return 'royal_flush'
+        elif self.is_straight_flush(cards):
+            return 'straight_flush'
+        elif self.is_four_of_a_kind(cards):
+            return 'four_of_a_kind'
+        elif self.is_full_house(cards):
+            return 'full_house'
+        elif self.is_flush(cards):
+            return 'flush'
+        elif self.is_straight(cards):
+            return 'straight'
+        elif self.is_three_of_a_kind(cards):
+            return 'three_of_a_kind'
+        elif self.is_two_pair(cards):
+            return 'two_pair'
+        elif self.is_one_pair(cards):
+            return 'pair'
+        else:
+            return 'high_card'
+
+    def is_bottom_stronger_than_middle(self, state):
+        """Проверяет, сильнее ли нижний ряд среднего."""
+        if len(state.board.bottom) < 5 or len(state.board.middle) < 5:
+            return False  # Недостаточно карт для сравнения
+        bottom_rank, _ = self.evaluate_hand(state.board.bottom)
+        middle_rank, _ = self.evaluate_hand(state.board.middle)
+        return bottom_rank <= middle_rank
+
+    def is_middle_stronger_than_top(self, state):
+        """Проверяет, сильнее ли средний ряд верхнего."""
+        if len(state.board.middle) < 5 or len(state.board.top) < 3:
+            return False
+        middle_rank, _ = self.evaluate_hand(state.board.middle)
+        top_rank, _ = self.evaluate_hand(state.board.top)
+        return middle_rank <= top_rank
+
+
+    def check_row_strength_rule(self, state):
+        """
+        Проверяет, соблюдается ли правило силы рядов (bottom >= middle >= top).
+        Возвращает True, если правило соблюдается, и False в противном случае.
+        """
+        if not state.board.is_full():
+            return True  # Если доска не заполнена, правило считается соблюденным
+
+        top_rank, _ = self.evaluate_hand(state.board.top)
+        middle_rank, _ = self.evaluate_hand(state.board.middle)
+        bottom_rank, _ = self.evaluate_hand(state.board.bottom)
+
+        # Чем меньше rank, тем сильнее комбинация.
+        return bottom_rank <= middle_rank <= top_rank
+
+    def save_progress(self):
+        data = {
+            'nodes': self.nodes,
+            'iterations': self.iterations,
+            'stop_threshold': self.stop_threshold
         }
-
-        button:hover {
-            background-color: #45a049;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        button:active {
-            transform: translateY(1px);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
-
-        .menu-toggle {
-            position: fixed;
-            left: 10px;
-            top: 20px;
-            z-index: 1003;
-            background: #4CAF50;
-            border: none;
-            border-radius: 0 5px 5px 0;
-            padding: 15px 10px;
-            cursor: pointer;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-
-        .menu-panel {
-            position: fixed;
-            left: -300px;
-            top: 0;
-            bottom: 0;
-            width: 300px;
-            background: white;
-            z-index: 1002;
-            transition: left 0.3s ease;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            overflow-y: auto;
-        }
-
-        .menu-panel h3 {
-            margin-left: 40px;
-        }
-
-        .menu-panel.open {
-            left: 0;
-        }
-
-        .setting-group {
-            margin-bottom: 20px;
-        }
-
-        .setting-group label {
-            display: block;
-            margin-bottom: 10px;
-        }
-
-        .setting-group select,
-        .setting-group input[type="range"],
-        .setting-group input[type="checkbox"] {
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .checkbox-container input[type="checkbox"] {
-            width: auto;
-        }
-	    .table {
-            display: grid;
-            grid-template-rows: auto auto auto;
-            gap: 20px;
-            margin: 20px auto;
-            width: 95%;
-            max-width: 1200px;
-            background-color: #1a472a;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            box-sizing: border-box;
-            overflow: visible;
-        }
-
-        .row {
-            display: flex;
-            justify-content: center;
-            gap: 2%;
-            min-height: 120px;
-            padding: 10px;
-            border-radius: 5px;
-            background-color: rgba(255,255,255,0.1);
-            flex-wrap: nowrap;
-        }
-
-        .card-slot {
-            width: calc(70px + 2vw);
-            height: calc(100px + 2vw);
-            min-width: 50px;
-            min-height: 70px;
-            border: 2px dashed rgba(255,255,255,0.3);
-            border-radius: 8px;
-            flex-shrink: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .card-slot.taken {
-            border: 2px solid rgba(255, 0, 0, 0.5);
-        }
-
-        .card {
-            width: calc(70px + 2vw);
-            height: calc(100px + 2vw);
-            min-width: 50px;
-            min-height: 70px;
-            border-radius: 8px;
-            background-color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: calc(16px + 1vw);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            position: absolute;
-            top: 0;
-            left: 0;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-            z-index: 2;
-        }
-
-        .card[data-suit="♥"], .card[data-suit="♦"] {
-            color: #e44145;
-        }
-
-        .card[data-suit="♣"], .card[data-suit="♠"] {
-            color: #2d2d2d;
-        }
-
-        .card-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            margin: 20px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 1200px;
-        }
-
-        .selector-row {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-            padding: 5px;
-        }
-
-        .selector-item, .action-button {
-            padding: 12px 20px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            user-select: none;
-            -webkit-user-select: none;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            min-width: 30px;
-        }
-
-        .selector-item:hover, .action-button:hover {
-            border-color: #4CAF50;
-            transform: translateY(-2px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .selector-item.selected {
-            background-color: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
-        }
-
-        .action-button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 0 20px;
-            font-size: 16px;
-            height: 45px;
-        }
-	    .combination-area {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px auto;
-            flex-wrap: wrap;
-            max-width: 1200px;
-        }
-
-        .combination-slot {
-            width: calc(70px + 1vw);
-            height: calc(100px + 1vw);
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background-color: transparent;
-            position: relative;
-        }
-
-        .combination-slot:hover {
-            border-color: #4CAF50;
-        }
-
-        .combination-slot.active {
-            border-color: #4CAF50;
-            background-color: rgba(76,175,80,0.1);
-        }
-
-        .fullscreen-btn {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: #333;
-            cursor: pointer;
-            z-index: 1002;
-            padding: 8px;
-            box-shadow: none;
-        }
-
-        .selector-item.unavailable {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        .royalty-animation {
-            position: absolute;
-            right: -30px;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: gold;
-            color: black;
-            border-radius: 5px;
-            padding: 5px;
-            font-size: 12px;
-            z-index: 3;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-            transform-origin: right center;
-        }
-
-        .royalty-animation.show {
-            opacity: 1;
-            transform: translateY(-50%) scale(1);
-        }
-
-        .total-royalty {
-            margin-top: 10px;
-            font-size: 18px;
-            color: gold;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .table {
-                width: 98%;
-                padding: 10px;
-                gap: 10px;
-            }
-
-            .row {
-                gap: 1.5%;
-                min-height: 80px;
-            }
-
-            .card, .card-slot {
-                width: calc(45px + 2vw);
-                height: calc(65px + 2vw);
-                font-size: calc(14px + 1vw);
-            }
-
-            .card-controls {
-                padding: 10px;
-            }
-
-            .selector-item, .action-button {
-                padding: 8px 12px;
-                font-size: 14px;
-            }
-
-            .combination-slot {
-                width: calc(45px + 1vw);
-                height: calc(65px + 1vw);
-            }
-
-            .menu-panel {
-                width: 250px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <button class="menu-toggle" onclick="toggleMenu()">
-        <span class="material-icons">menu</span>
-    </button>
-
-    <div class="menu-panel">
-        <h3>Настройки</h3>
-        <div class="setting-group">
-            <label for="fantasyType">Тип фантазии:</label>
-            <select id="fantasyType">
-                <option value="normal">Обычная</option>
-                <option value="progressive">Прогрессивная</option>
-            </select>
-        </div>
-        <div class="setting-group">
-            <div class="checkbox-container">
-                <input type="checkbox" id="fantasyMode">
-                <label for="fantasyMode">Режим фантазии</label>
-            </div>
-        </div>
-        <div class="setting-group">
-            <label for="aiTime">Время на ход ИИ (сек):</label>
-            <input type="range" id="aiTime" min="1" max="60" value="5">
-            <span id="aiTimeValue">5</span>
-        </div>
-        <div class="setting-group">
-            <label for="iterations">Количество итераций MCCFR:</label>
-            <input type="range" id="iterations" min="100" max="100000" value="10000">
-            <span id="iterationsValue">10000</span>
-        </div>
-        <div class="setting-group">
-            <label for="stopThreshold">Порог остановки обучения:</label>
-            <input type="range" id="stopThreshold" min="0.0001" max="0.1" value="0.001" step="0.0001">
-            <span id="stopThresholdValue">0.001</span>
-        </div>
-        <div class="setting-group">
-            <label for="aiType">Тип ИИ:</label>
-            <select id="aiType">
-                <option value="random">Случайный</option>
-                <option value="mccfr">MCCFR</option>
-            </select>
-        </div>
-        <div class="setting-group">
-            <button onclick="saveSettings()">Ок</button>
-        </div>
-    </div>
-
-    <button class="fullscreen-btn" onclick="toggleFullScreen()">
-        <span class="material-icons">fullscreen</span>
-    </button>
-
-    <div class="controls">
-        <button onclick="resetTraining()">Сброс</button>
-    </div>
-
-    <div class="total-royalty" id="total-royalty"></div>
-    <div class="table">
-        <div class="row top" id="top-row"></div>
-        <div class="row middle" id="middle-row"></div>
-        <div class="row bottom" id="bottom-row"></div>
-    </div>
-
-    <div class="card-controls">
-        <div class="selector-row">
-            <div class="selector-item" data-rank="A">A</div>
-            <div class="selector-item" data-rank="K">K</div>
-            <div class="selector-item" data-rank="Q">Q</div>
-            <div class="selector-item" data-rank="J">J</div>
-            <div class="selector-item" data-rank="10">10</div>
-            <div class="selector-item" data-rank="9">9</div>
-            <div class="selector-item" data-rank="8">8</div>
-            <div class="selector-item" data-rank="7">7</div>
-            <div class="selector-item" data-rank="6">6</div>
-            <div class="selector-item" data-rank="5">5</div>
-            <div class="selector-item" data-rank="4">4</div>
-            <div class="selector-item" data-rank="3">3</div>
-            <div class="selector-item" data-rank="2">2</div>
-        </div>
-        <div class="selector-row">
-            <button class="selector-item action-button" onclick="distributeCards()">+</button>
-            <div class="selector-item" data-suit="♥">♥</div>
-            <div class="selector-item" data-suit="♦">♦</div>
-            <div class="selector-item" data-suit="♣">♣</div>
-            <div class="selector-item" data-suit="♠">♠</div>
-            <button class="selector-item action-button" onclick="removeSelectedCards()">-</button>
-        </div>
-    </div>
-
-    <div class="combination-area" id="combination-area"></div>
-
-    <script>
-        let menuOpen = false;
-        let selectedRank = null;
-        let selectedSuit = null;
-        let isFullscreen = false;
-        let unavailableCards = new Set();
-
-        document.addEventListener('fullscreenchange', () => {
-            isFullscreen = !!document.fullscreenElement;
-            localStorage.setItem('isFullscreen', isFullscreen);
-        });
-
-        function toggleMenu() {
-            const menu = document.querySelector('.menu-panel');
-            menuOpen = !menuOpen;
-            menu.classList.toggle('open', menuOpen);
-        }
-
-        document.addEventListener('click', (e) => {
-            const menu = document.querySelector('.menu-panel');
-            const menuToggle = document.querySelector('.menu-toggle');
-            if (menuOpen && !menu.contains(e.target) && !menuToggle.contains(e.target)) {
-                toggleMenu();
-            }
-        });
-
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log(`Error attempting to enable full-screen mode: ${err.message}`);
-                });
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-            }
-        }
-
-        function createCard(cardData) {
-            //console.log("createCard() - Начало. cardData:", cardData); // Убрал для чистоты, есть в getGameStateFromDOM
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.dataset.rank = cardData.rank;
-            card.dataset.suit = cardData.suit;
-            card.textContent = `${cardData.rank}${cardData.suit}`;
-
-            if (cardData.suit === '♥' || cardData.suit === '♦') {
-                card.style.color = '#e44145';
-            }
-
-            card.addEventListener('dblclick', () => {
-                const cardKey = `${cardData.rank}${cardData.suit}`;
-                if (unavailableCards.has(cardKey) && card.parentNode.classList.contains('combination-slot')) {
-                    unavailableCards.delete(cardKey);
-                    document.querySelectorAll('.selector-item').forEach(item => {
-                        if (item.dataset.rank === cardData.rank) {
-                            item.classList.remove('unavailable');
-                        }
-                        if (item.dataset.suit === cardData.suit) {
-                            item.classList.remove('unavailable');
-                        }
-                    });
-                    card.remove();
-                }
-            });
-
-            card.draggable = true;
-            card.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', '');
-                e.dataTransfer.setData('card', JSON.stringify({ rank: card.dataset.rank, suit: card.dataset.suit }));
-                card.style.opacity = '0.5';
-            });
-
-            card.addEventListener('dragend', (e) => {
-                card.style.opacity = '1';
-            });
-
-            //console.log("createCard() - Конец. Создана карта:", card); // Убрал для чистоты, есть в getGameStateFromDOM
-            return card;
-        }
-
-
-        function setupTable() {
-            //console.log("setupTable() - Начало"); // Убрал для чистоты
-            const rows = ['top', 'middle', 'bottom'];
-            const numCards = [3, 5, 5];
-
-            rows.forEach((row, index) => {
-                const rowElement = document.getElementById(`${row}-row`);
-                rowElement.innerHTML = '';
-                for (let i = 0; i < numCards[index]; i++) {
-                    const slot = document.createElement('div');
-                    slot.className = 'card-slot';
-                    slot.style.position = 'relative';
-                    slot.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                    });
-                    slot.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                    });
-
-                    const royaltyAnimation = document.createElement('div');
-                    royaltyAnimation.classList.add('royalty-animation');
-                    slot.appendChild(royaltyAnimation);
-
-                    rowElement.appendChild(slot);
-                }
-            });
-            //console.log("setupTable() - Конец. Таблица настроена."); // Убрал для чистоты
-        }
-
-        function resetCombinationArea() {
-            const combinationArea = document.getElementById('combination-area');
-            combinationArea.innerHTML = '';
-
-            // Создаем 17 слотов для комбинаций
-            for (let i = 0; i < 17; i++) {
-                const slot = document.createElement('div');
-                slot.className = 'combination-slot';
-                slot.addEventListener('dragover', (e) => e.preventDefault());
-                slot.addEventListener('drop', handleCombinationSlotDrop);
-                combinationArea.appendChild(slot);
-            }
-            console.log(`resetCombinationArea() - Конец. Создано 17 слотов для комбинаций.`);
-        }
-
-        function handleCombinationSlotDrop(e) {
-            e.preventDefault();
-            const cardData = JSON.parse(e.dataTransfer.getData('card'));
-            const cardKey = `${cardData.rank}${cardData.suit}`;
-            if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
-                const card = createCard(cardData);
-                e.currentTarget.appendChild(card);
-                unavailableCards.add(cardKey);
-                e.currentTarget.classList.add('taken');
-            }
-        }
-
-        function getGameStateFromDOM() {
-            console.log("getGameStateFromDOM() - Начало");
-
-            // Получаем только карты из слотов, помеченных как taken
-            const selectedCards = Array.from(document.querySelectorAll('.combination-area .combination-slot.taken .card')).map(card => ({
-                rank: card.dataset.rank,
-                suit: card.dataset.suit
-            }));
-            console.log("getGameStateFromDOM() - Выбранные карты из DOM:", selectedCards);
-
-            const board = {
-                top: Array.from(document.querySelectorAll('#top-row .card-slot .card')).map(card =>
-                    card ? { rank: card.dataset.rank, suit: card.dataset.suit } : null
-                ),
-                middle: Array.from(document.querySelectorAll('#middle-row .card-slot .card')).map(card =>
-                    card ? { rank: card.dataset.rank, suit: card.dataset.suit } : null
-                ),
-                bottom: Array.from(document.querySelectorAll('#bottom-row .card-slot .card')).map(card =>
-                    card ? { rank: card.dataset.rank, suit: card.dataset.suit } : null
-                )
-            };
-
-            console.log("getGameStateFromDOM() - Состояние доски из DOM:", board);
-
-            const discardedCards = Array.from(unavailableCards).map(cardKey => {
-                const [rank, suit] = cardKey.match(/([0-9JQKA]+)([♥♦♣♠])/).slice(1);
-                return { rank, suit };
-            });
-
-            console.log("getGameStateFromDOM() - Конец. Возвращено состояние игры.");
-            return {
-                selected_cards: selectedCards,
-                board: board,
-                discarded_cards: discardedCards
-            };
-        }
-
-
-        function placeCardsOnBoard(moveData) {
-            console.log("placeCardsOnBoard() - Начало. moveData:", moveData);
-            const lines = ['top', 'middle', 'bottom'];
-
-            // Вместо nextSlots берем информацию из самого moveData, так надежнее
-            lines.forEach(line => {
-                console.log(`placeCardsOnBoard() - Обработка линии: ${line}`);
-                const row = document.getElementById(`${line}-row`);
-                if (!row) {
-                    console.error(`placeCardsOnBoard() - Элемент строки не найден для линии: ${line}`);
-                    return;
-                }
-                const slots = row.querySelectorAll('.card-slot');
-                console.log(`placeCardsOnBoard() - Количество слотов найдено в ${line}-row: ${slots.length}`);
-
-                // Находим первый пустой слот, начиная с начала линии
-                let slotIndex = 0;
-                while (slotIndex < slots.length && slots[slotIndex].querySelector('.card')) {
-                    slotIndex++;
-                }
-                console.log(`placeCardsOnBoard() - Начальный slotIndex для ${line}: ${slotIndex}`);
-
-                if (moveData && moveData[line]) {
-                    moveData[line].forEach(cardData => {
-                        if (!cardData) return;
-
-                        if (slotIndex >= slots.length) {
-                            console.error(`placeCardsOnBoard() - slotIndex за пределами границ для ${line}`);
-                            return;
-                        }
-
-                        const slot = slots[slotIndex];
-                        if (!slot) {
-                            console.error(`placeCardsOnBoard() - Слот не найден для индекса ${slotIndex}`);
-                            return;
-                        }
-
-                        // Проверяем, нет ли уже карты в этом слоте
-                        if (!slot.querySelector('.card')) {
-                            console.log(`placeCardsOnBoard() - Размещение карты ${cardData.rank}${cardData.suit}`);
-                            const card = createCard(cardData);
-                            slot.appendChild(card);
-                            unavailableCards.add(`${cardData.rank}${cardData.suit}`);
-                            slot.classList.add('taken');
-                        }
-                        slotIndex++; // Переходим к следующему слоту
-                    });
-                }
-            });
-            console.log("placeCardsOnBoard() - Конец. Карты размещены на доске.");
-        }
-
-
-        function handleCardSelection(element) {
-           // console.log("handleCardSelection() - Начало. element:", element); // Убрал для чистоты
-            if (element.classList.contains('unavailable')) {
-               // console.log("handleCardSelection() - Карта недоступна, выход.");  // Убрал для чистоты
-                return;
-            }
-
-            if (element.dataset.rank) {
-                if (selectedRank === element.dataset.rank) {
-                    selectedRank = null;
-                    element.classList.remove('selected');
-                   // console.log("handleCardSelection() - Ранг отменен:", element.dataset.rank);  // Убрал для чистоты
-                } else {
-                    document.querySelectorAll('[data-rank]').forEach(el => el.classList.remove('selected'));
-                    selectedRank = element.dataset.rank;
-                    element.classList.add('selected');
-                   // console.log("handleCardSelection() - Ранг выбран:", element.dataset.rank); // Убрал для чистоты
-                }
-            } else if (element.dataset.suit) {
-                if (selectedSuit === element.dataset.suit) {
-                    selectedSuit = null;
-                    element.classList.remove('selected');
-                   // console.log("handleCardSelection() - Масть отменена:", element.dataset.suit); // Убрал для чистоты
-                } else {
-                    document.querySelectorAll('[data-suit]').forEach(el => el.classList.remove('selected'));
-                    selectedSuit = element.dataset.suit;
-                    element.classList.add('selected');
-                  //  console.log("handleCardSelection() - Масть выбрана:", element.dataset.suit); // Убрал для чистоты
-                }
-            }
-
-            if (selectedRank && selectedSuit) {
-                const cardKey = `${selectedRank}${selectedSuit}`;
-                if (!unavailableCards.has(cardKey)) {
-                    const combinationArea = document.getElementById('combination-area');
-                    const emptySlot = combinationArea.querySelector('.combination-slot:not(.taken)');
-                    if (emptySlot) {
-                        const card = createCard({ rank: selectedRank, suit: selectedSuit });
-                        emptySlot.appendChild(card);
-                        unavailableCards.add(cardKey);
-                        emptySlot.classList.add('taken');
-
-                        selectedRank = null;
-                        selectedSuit = null;
-                        document.querySelectorAll('.selector-item').forEach(el => el.classList.remove('selected'));
-                      //  console.log("handleCardSelection() - Карта добавлена в комбинацию:", cardKey); // Убрал для чистоты
-                    }
-                }
-            }
-          //  console.log("handleCardSelection() - Конец.");  // Убрал для чистоты
-        }
-
-      function distributeCards() {
-        console.log("distributeCards() - Начало");
-        const gameState = getGameStateFromDOM();
-        const numCards = gameState.selected_cards.length;
-        const isFantasyMode = document.getElementById('fantasyMode').checked;
-        const isFirstDeal = gameState.board.top.every(c => c === null) && gameState.board.middle.every(c => c === null) && gameState.board.bottom.every(c => c === null);
-
-        let placementMode;
-        if (isFirstDeal && numCards === 5) {
-            placementMode = "first_deal"; // Первая раздача, 5 карт
-        } else if (numCards === 3) {
-            placementMode = "standard";   // Стандартный ход, 3 карты (2+1)
-        } else if (isFantasyMode && numCards > 3) {
-            placementMode = "fantasy";    // Фантазия, >3 карт
-        } else {
-            placementMode = "free";       // Свободный режим, любое количество карт
-        }
-        console.log("distributeCards() - Режим размещения:", placementMode);
-
-        if (numCards > 0) {
-            console.log("distributeCards() - Вызов ИИ для распределения карт");
-            const aiSettings = {
-                fantasyType: document.getElementById('fantasyType').value,
-                fantasyMode: isFantasyMode,
-                aiTime: document.getElementById('aiTime').value,
-                iterations: document.getElementById('iterations').value,
-                stopThreshold: document.getElementById('stopThreshold').value,
-                aiType: document.getElementById('aiType').value,
-                placementMode: placementMode // Передаем режим размещения
-            };
-
-            const requestData = JSON.stringify({
-                selected_cards: gameState.selected_cards,
-                board: gameState.board,
-                discarded_cards: gameState.discarded_cards,
-                ai_settings: aiSettings
-            });
-            console.log("distributeCards() - Отправка данных на /ai_move:", requestData);
-
-            fetch('/ai_move', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: requestData
-            })
-           .then(response => {
-                console.log("distributeCards() - Ответ сервера статус:", response.status);
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        console.error(`distributeCards() - HTTP ошибка! статус: ${response.status}, текст: ${text}`);
-                        throw new Error(`HTTP error! status: ${response.status}, text: ${text}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log("distributeCards() - Ответ сервера данные:", data);
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
-
-                // Размещаем новые карты
-                placeCardsOnBoard(data.move);
-
-                if (data.royalties) {
-                    displayRoyalties(data.royalties);
-                }
-                if (data.total_royalty !== undefined) {
-                    displayTotalRoyalty(data.total_royalty);
-                }
-
-                // Очищаем область комбинации
-                resetCombinationArea();
-
-                saveGameStateToSession();
-
-                // Очищаем выбранные карты
-                gameState.selected_cards = [];
-                console.log("distributeCards() - selected_cards очищены.");
-            })
-            .catch(error => {
-                console.error('distributeCards() - Ошибка:', error);
-                alert('Произошла ошибка при получении хода ИИ.');
-            });
-        } else {
-            alert('Пожалуйста, выберите карты для добавления.');
-        }
-        console.log("distributeCards() - Конец.");
-    }
-
-
-    function removeSelectedCards() {
-        console.log("removeSelectedCards() - Начало");
-        const combinationArea = document.getElementById('combination-area');
-        combinationArea.querySelectorAll('.card').forEach(card => {
-            const cardKey = `${card.dataset.rank}${card.dataset.suit}`;
-            // Исправлено: проверяем, *ЕСТЬ* ли карта на доске, прежде чем добавлять в unavailable
-            if (!isCardOnBoard({rank: card.dataset.rank, suit: card.dataset.suit})) {
-                unavailableCards.delete(cardKey); // Удаляем, а не добавляем
-            }
-            card.parentElement.classList.remove('taken');
-            card.remove();
-            //updateSelectorItemAvailability(card.dataset.rank, card.dataset.suit); // Убрал, так как не используется
-        });
-         console.log("removeSelectedCards() - Конец. Карты удалены из комбинации.");
-    }
-
-    function resetTraining() {
-        console.log("resetTraining() - Начало");
-        setupTable();
-        resetCombinationArea();
-
-        unavailableCards.clear();
-        selectedRank = null;
-        selectedSuit = null;
-        document.querySelectorAll('.selector-item').forEach(el => el.classList.remove('selected', 'unavailable'));
-        document.querySelectorAll('.card-slot').forEach(slot => {
-            slot.classList.remove('taken');
-            const card = slot.querySelector('.card');
-            if (card) {
-                card.remove();
-            }
-        });
-
-        document.querySelectorAll('.royalty-animation').forEach(el => {
-            el.classList.remove('show');
-            el.textContent = '';
-        });
-        document.getElementById('total-royalty').textContent = '';
-
-        fetch('/update_state', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                selected_cards: [],
-                board: { top: [], middle: [], bottom: [] },
-                discarded_cards: [],
-                ai_settings: {
-                    fantasyType: document.getElementById('fantasyType').value,
-                    fantasyMode: document.getElementById('fantasyMode').checked,
-                    aiTime: document.getElementById('aiTime').value,
-                    iterations: document.getElementById('iterations').value,
-                    stopThreshold: document.getElementById('stopThreshold').value,
-                    aiType: document.getElementById('aiType').value,
-                    placementMode: 'standard'  // Добавили placementMode
-                }
-            })
-        })
-    .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            console.log("resetTraining() - Сервер: Состояние игры успешно сброшено.");
-        })
-        .catch(error => {
-            console.error('resetTraining() - Ошибка сброса состояния игры:', error);
-            alert('Произошла ошибка при сбросе состояния.');
-        });
-        console.log("resetTraining() - Конец. Тренировка сброшена.");
-    }
-
-    function isCardOnBoard(card) {
-        const board = getGameStateFromDOM().board;
-        for (const line in board) {
-            if (board[line].some(c => c && c.rank === card.rank && c.suit === card.suit)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function displayRoyalties(royalties) {
-        console.log("displayRoyalties() - Начало. royalties:", royalties);
-        const lines = ['top', 'middle', 'bottom'];
-        lines.forEach(line => {
-            const royaltyValue = royalties[line];
-            if (royaltyValue > 0) {
-                const row = document.getElementById(`${line}-row`);
-                const slots = row.querySelectorAll('.card-slot');
-                const lastSlot = slots[slots.length - 1];
-
-                const royaltyAnimation = lastSlot.querySelector('.royalty-animation');
-                if (royaltyAnimation) {
-                    royaltyAnimation.textContent = `+${royaltyValue}`;
-                    royaltyAnimation.classList.remove('show');
-                    requestAnimationFrame(() => {
-                        royaltyAnimation.classList.add('show');
-                    });
-
-                    setTimeout(() => {
-                        royaltyAnimation.classList.remove('show');
-                    }, 3000);
-                }
-            }
-        });
-        console.log("displayRoyalties() - Конец. Роялти отображены.");
-    }
-
-    function displayTotalRoyalty(totalRoyalty) {
-        console.log("displayTotalRoyalty() - Начало. totalRoyalty:", totalRoyalty);
-        const totalRoyaltyElement = document.getElementById('total-royalty');
-        totalRoyaltyElement.textContent = `Total Royalty: +${totalRoyalty}`;
-        console.log("displayTotalRoyalty() - Конец. Общая роялти отображена.");
-    }
-
-    function saveGameStateToSession() {
-        console.log("saveGameStateToSession() - Начало");
-        const gameState = getGameStateFromDOM();
-        const aiSettings = {
-            fantasyType: document.getElementById('fantasyType').value,
-            fantasyMode: document.getElementById('fantasyMode').checked,
-            aiTime: document.getElementById('aiTime').value,
-            iterations: document.getElementById('iterations').value,
-            stopThreshold: document.getElementById('stopThreshold').value,
-            aiType: document.getElementById('aiType').value,
-            placementMode: 'standard' // Добавлено
-        };
-
-        console.log("saveGameStateToSession() - Сохранение состояния:", { ...gameState, ai_settings: aiSettings });
-
-        fetch('/update_state', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...gameState, ai_settings: aiSettings })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            console.log("saveGameStateToSession() - Состояние успешно сохранено.");
-        })
-        .catch(error => {
-            console.error('saveGameStateToSession() - Ошибка:', error);
-        });
-    }
-
-    function saveSettings() {
-        console.log("saveSettings() - Начало");
-        const aiSettings = {
-            fantasyType: document.getElementById('fantasyType').value,
-            fantasyMode: document.getElementById('fantasyMode').checked,
-            aiTime: document.getElementById('aiTime').value,
-            iterations: document.getElementById('iterations').value,
-            stopThreshold: document.getElementById('stopThreshold').value,
-            aiType: document.getElementById('aiType').value,
-            placementMode: 'standard' // Добавлено
-        };
-
-        console.log("saveSettings() - Сохранение настроек:", aiSettings);
-
-        fetch('/update_state', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                selected_cards: [],
-                board: { top: [], middle: [], bottom: [] },
-                discarded_cards: [],
-                ai_settings: aiSettings
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("saveSettings() - Ответ сервера:", data);
-            if (data.status === 'success') {
-                alert('Настройки сохранены!');
-                toggleMenu();
-            } else {
-                alert('Ошибка при сохранении настроек.');
-            }
-        })
-        .catch(error => {
-            console.error('saveSettings() - Ошибка:', error);
-            alert('Произошла ошибка при сохранении настроек.');
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        setupTable();
-        resetCombinationArea();
-
-        const savedFullscreen = localStorage.getItem('isFullscreen') === 'true';
-        if (savedFullscreen) {
-            toggleFullScreen();
-        }
-
-        document.querySelectorAll('.selector-item').forEach(item => {
-            item.addEventListener('click', () => handleCardSelection(item));
-        });
-
-        ['aiTime', 'iterations', 'stopThreshold'].forEach(id => {
-            const slider = document.getElementById(id);
-            const value = document.getElementById(`${id}Value`);
-            slider.addEventListener('input', (e) => {
-                value.textContent = e.target.value;
-            });
-        });
-    });
-</script>
-</body>
-</html>
+        utils.save_ai_progress(data, 'cfr_data.pkl') # ИСПРАВЛЕНО
+
+
+    def load_progress(self):
+        data = utils.load_ai_progress('cfr_data.pkl') # ИСПРАВЛЕНО
+        if data:
+            self.nodes = data['nodes']
+            self.iterations = data['iterations']
+            self.stop_threshold = data.get('stop_threshold', 0.001) # Default value if not present
+
+
+class RandomAgent: # <--- RandomAgent теперь класс верхнего уровня!
+    def __init__(self):
+        pass  # No initialization needed for a random agent
+
+    def get_move(self, game_state, timeout_event, result):
+        """Chooses a random valid move."""
+        logger.debug("Inside RandomAgent get_move")
+        actions = game_state.get_actions()
+        logger.debug(f"Available actions: {actions}")
+
+        if not actions:
+            result['move'] = {'error': 'Нет доступных ходов'}
+            logger.debug("No actions available, returning error.")
+            return
+
+        best_move = random.choice(actions) if actions else None
+        logger.debug(f"Selected move: {best_move}")
+        result['move'] = best_move  # Correctly return the move

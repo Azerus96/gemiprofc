@@ -36,7 +36,7 @@ def initialize_ai_agent(ai_settings):
 
     if os.environ.get("AI_PROGRESS_TOKEN"):
         try:
-            cfr_agent.load_progress() # Тут всё верно. Это *метод* класса CFRAgent.
+            cfr_agent.load_ai_progress_from_github() # ИСПРАВЛЕНО: load_progress -> load_ai_progress_from_github
             logger.info("Прогресс AI успешно загружен.")
         except Exception as e:
             logger.error(f"Ошибка загрузки прогресса AI: {e}")  #  будет ошибка, т.к. utils
@@ -288,7 +288,7 @@ def ai_move():
             # Сохранение прогресса AI (для MCCFR)
             if cfr_agent and ai_settings.get('aiType') == 'mccfr':
                 try:
-                    cfr_agent.save_progress() #Сохраняем локально
+                    cfr_agent.save_ai_progress_to_github() #Сохраняем локально
                     logger.info("Прогресс AI сохранен локально.")
                     if github_utils.save_ai_progress_to_github():  # Попытка сохранить на GitHub
                         logger.info("Прогресс AI сохранен на GitHub.")

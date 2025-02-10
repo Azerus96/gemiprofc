@@ -1,6 +1,6 @@
 import random
 import itertools
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter  # Counter добавлен
 import utils
 from threading import Event, Thread
 import time
@@ -265,6 +265,7 @@ class GameState:
 
         logger.debug(f"Generated actions: {actions}")
         return actions
+
     def is_valid_fantasy_entry(self, action):
         """Checks if an action leads to a valid fantasy mode entry."""
         new_board = Board()
@@ -676,7 +677,7 @@ class CFRAgent:
 
             if (i + 1) % self.save_interval == 0: # Check every save_interval iterations
                 logger.info(f"Iteration {i+1} of {self.iterations} complete. Saving progress...")
-                self.save_progress() # Сохраняем прогресс
+                self.save_ai_progress_to_github() # ИЗМЕНЕНО ИМЯ МЕТОДА
                 if self.check_convergence():
                     logger.info(f"CFR agent converged after {i + 1} iterations.")
                     break
@@ -689,7 +690,7 @@ class CFRAgent:
                     return False
         return True
 
-    def get_move(self, game_state, timeout_event, result):  # убрали num_cards
+    def get_move(self, game_state, num_cards, timeout_event, result):  # убрали num_cards
         logger.debug("Inside get_move")
         actions = game_state.get_actions()
         logger.debug(f"Available actions: {actions}")
@@ -735,12 +736,12 @@ class CFRAgent:
             # Если узла нет, используем shallow_search с baseline_evaluation
             return self.shallow_search(next_state, 2, timeout_event)
 
-        def shallow_search(self, state, depth, timeout_event):
-            """
-            Поверхностный поиск с ограниченной глубиной.
-            """
-            if depth == 0 or state.is_terminal() or timeout_event.is_set():
-                return self.baseline_evaluation(state) # Используем новую baseline_evaluation
+    def shallow_search(self, state, depth, timeout_event):
+        """
+        Поверхностный поиск с ограниченной глубиной.
+        """
+        if depth == 0 or state.is_terminal() or timeout_event.is_set():
+            return self.baseline_evaluation(state) # Используем новую baseline_evaluation
 
             best_value = float('-inf')
             for action in state.get_actions():
@@ -782,32 +783,32 @@ class CFRAgent:
                 if self.is_straight_potential(cards, available_cards):
                     potential += 0.5
 
-                # Check for flush potential
-                if self.is_flush_potential(cards, available_cards):
-                    potential += 0.7
+            # Check for flush potential
+            if self.is_flush_potential(cards, available_cards):
+                potential += 0.7
 
             if num_cards == 2 and line == 'top':
                 # Check for pair potential to make a set
                 if self.is_pair_potential(cards, available_cards):
                     potential += 0.3
 
-            return potential
+        return potential
 
-        def is_flush_potential(self, cards, available_cards):
-            """Checks if there's potential to make a flush."""
-            if len(cards) < 2:
-                return False
+    def is_flush_potential(self, cards, available_cards):
+        """Checks if there's potential to make a flush."""
+        if len(cards) < 2:
+            return False
 
-            suit_counts = defaultdict(int)
-            for card in cards:
-                suit_counts[card.suit] += 1
+        suit_counts = defaultdict(int)
+        for card in cards:
+            suit_counts[card.suit] += 1
 
-            for suit, count in suit_counts.items():
-                if count >= 2:  # At least 2 cards of the same suit
-                    remaining_needed = 5 - count
-                    available_of_suit = sum(1 for card in available_cards if card.suit == suit)
-                    if available_of_suit >= remaining_needed:
-                        return True
+        for suit, count in suit_counts.items():
+            if count >= 2:  # At least 2 cards of the same suit
+                remaining_needed = 5 - count
+                available_of_suit = sum(1 for card in available_cards if card.suit == suit)
+                if available_of_suit >= remaining_needed:
+                    return True
             return False
 
         def is_straight_potential(self, cards, available_cards):
@@ -1075,7 +1076,7 @@ class CFRAgent:
             if len(state.board.middle) < 5 or len(state.board.top) < 3:
                 return False
             middle_rank, _ = self.evaluate_hand(state.board.middle)
-            top_rank, _ = self.evaluate_hand(state.board.top)
+            top_rank, _ = state.evaluate_hand(state.board.top)
             return middle_rank <= top_rank
 
 
@@ -1094,7 +1095,7 @@ class CFRAgent:
             # Чем меньше rank, тем сильнее комбинация.
             return bottom_rank <= middle_rank <= top_rank
 
-        def save_progress(self):
+        def save_ai_progress_to_github(self): # ИЗМЕНЕНО ИМЯ МЕТОДА
             data = {
                 'nodes': self.nodes,
                 'iterations': self.iterations,
@@ -1103,7 +1104,7 @@ class CFRAgent:
             utils.save_ai_progress(data, 'cfr_data.pkl') # ИСПРАВЛЕНО
 
 
-        def load_progress(self):
+        def load_ai_progress_from_github(self): # ИЗМЕНЕНО ИМЯ МЕТОДА
             data = utils.load_ai_progress('cfr_data.pkl') # ИСПРАВЛЕНО
             if data:
                 self.nodes = data['nodes']

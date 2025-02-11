@@ -242,7 +242,7 @@ def ai_move():
         # Создание объекта доски с сохранением существующих карт
         board = ai_engine.Board()
         for line in ['top', 'middle', 'bottom']:
-                        line_data = board_data.get(line, [])
+            line_data = board_data.get(line, [])
             if not isinstance(line_data, list):
                 logger.error(f"Ошибка: board[{line}] не является списком")
                 return jsonify({'error': f'Invalid board[{line}] format'}), 400
@@ -290,7 +290,7 @@ def ai_move():
                 try:
                     cfr_agent.save_progress()
                     logger.info("Прогресс AI сохранен локально.")
-                    if github_utils.save_progress_to_github():  # Попытка сохранить на GitHub
+                    if github_utils.save_ai_progress_to_github():  # Попытка сохранить на GitHub
                         logger.info("Прогресс AI сохранен на GitHub.")
                     else:
                         logger.warning("Не удалось сохранить прогресс AI на GitHub.")

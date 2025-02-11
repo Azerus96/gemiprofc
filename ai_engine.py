@@ -253,15 +253,15 @@ class GameState:
             logger.error(f"Error in standard actions: {e}")
         return actions
     def _get_fantasy_actions(self) -> List[Dict]:
-    """Handle fantasy mode actions with improved validation."""
-    try:
-        if self.ai_settings.get('fantasyMode'):
-            return self._get_fantasy_repeat_actions()
-        else:
-            return self._get_fantasy_entry_actions()
-    except Exception as e:
-        logger.error(f"Error in fantasy actions: {e}")
-        return []
+        """Handle fantasy mode actions with improved validation."""
+        try:
+            if self.ai_settings.get('fantasyMode'):
+                return self._get_fantasy_repeat_actions()
+            else:
+                return self._get_fantasy_entry_actions()
+        except Exception as e:
+            logger.error(f"Error in fantasy actions: {e}")
+            return []
 
     def _get_fantasy_repeat_actions(self) -> List[Dict]:
         """Handle fantasy repeat actions."""
@@ -374,7 +374,7 @@ class GameState:
         except Exception as e:
             logger.error(f"Error in fantasy repeat validation: {e}")
             return False
-            def calculate_action_royalty(self, action: Dict) -> int:
+    def calculate_action_royalty(self, action: Dict) -> int:
         """Calculates royalty for an action with error handling."""
         try:
             new_board = Board()

@@ -327,7 +327,7 @@ def update_state():
     except Exception as e:
         logger.exception("Ошибка в update_state:")
         return jsonify({'error': str(e)}), 500
-      @app.route('/ai_move', methods=['POST'])
+@app.route('/ai_move', methods=['POST'])
 def ai_move():
     """Обработчик хода AI с улучшенной обработкой ошибок и валидацией"""
     global cfr_agent

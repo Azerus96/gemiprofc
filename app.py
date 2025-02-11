@@ -248,7 +248,7 @@ def training():
     except Exception as e:
         logger.exception("Ошибка в обработчике training:")
         return jsonify({'error': str(e)}), 500
-      @app.route('/update_state', methods=['POST'])
+@app.route('/update_state', methods=['POST'])
 @atomic_session_update
 def update_state():
     """Обработчик обновления состояния с улучшенной валидацией"""

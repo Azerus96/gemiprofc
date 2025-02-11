@@ -491,7 +491,7 @@ class GameState:
         except Exception as e:
             logger.error(f"Error evaluating hand: {e}")
             return 11, 0
-            def _evaluate_five_card_hand(self, cards: List[Card]) -> Tuple[int, float]:
+    def _evaluate_five_card_hand(self, cards: List[Card]) -> Tuple[int, float]:
         """Evaluates five-card poker hand with detailed scoring."""
         try:
             if self.is_royal_flush(cards):

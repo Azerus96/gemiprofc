@@ -137,12 +137,14 @@ class Board:
         if line not in ['top', 'middle', 'bottom']:
             raise ValueError("Invalid line specified")
         return getattr(self, line)
-        class GameState:
+        
+class GameState:
     def __init__(self, selected_cards: Optional[List[Card]] = None,
-        board: Optional[Board] = None,
-        discarded_cards: Optional[List[Card]] = None,
-        ai_settings: Optional[Dict] = None,
-        deck: Optional[List[Card]] = None):
+                 board: Optional[Board] = None,
+                 discarded_cards: Optional[List[Card]] = None,
+                 ai_settings: Optional[Dict] = None,
+                 deck: Optional[List[Card]] = None):
+        # Тело метода должно быть с отступом
         self.selected_cards = Hand(selected_cards) if selected_cards is not None else Hand()
         self.board = board if board is not None else Board()
         self.discarded_cards = discarded_cards if discarded_cards is not None else []
@@ -151,7 +153,7 @@ class Board:
         self.deck = deck if deck is not None else self.create_deck()
         self.rank_map = {rank: i for i, rank in enumerate(Card.RANKS)}
         self.suit_map = {suit: i for i, suit in enumerate(Card.SUITS)}
-        self._lock = Lock()  # Добавляем блокировку для потокобезопасности
+        self._lock = Lock()
 
     def create_deck(self) -> List[Card]:
         """Creates a standard deck of 52 cards."""

@@ -620,7 +620,7 @@ class GameState:
         except Exception as e:
             logger.error(f"Error checking straight: {e}")
             return False
-            def is_three_of_a_kind(self, cards: List[Card]) -> bool:
+    def is_three_of_a_kind(self, cards: List[Card]) -> bool:
         """Checks for three of a kind with improved counting."""
         try:
             rank_counts = Counter(card.rank for card in cards)

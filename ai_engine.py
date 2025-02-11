@@ -194,7 +194,7 @@ class Board:
     def __repr__(self):
         return f"Top: {self.top}\nMiddle: {self.middle}\nBottom: {self.bottom}"
 
-    class GameState:
+class GameState:
     """Представление состояния игры с улучшенной обработкой сброшенных карт."""
     def __init__(self, selected_cards: Optional[List[Card]] = None,
                  board: Optional[Board] = None,

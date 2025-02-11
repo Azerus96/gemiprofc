@@ -832,3 +832,156 @@ class CFRNode:
             except Exception as e:
                 logger.error(f"Error calculating average strategy: {e}")
                 return {action: 1.0 / len(self.actions) for action in self.actions}
+
+class CFRAgent:
+    """Реализация CFR агента для игры."""
+    def __init__(self, iterations: int = 1000, stop_threshold: float = 0.001):
+        self.nodes = {}
+        self.iterations = iterations
+        self.stop_threshold = stop_threshold
+        self.save_interval = 100
+        self._lock = Lock()
+
+    def train(self, timeout_event: Event, result: Dict):
+        """Обучение агента."""
+        try:
+            for i in range(self.iterations):
+                if timeout_event.is_set():
+                    logger.info(f"Training interrupted after {i} iterations")
+                    break
+
+                all_cards = Card.get_all_cards()
+                random.shuffle(all_cards)
+                game_state = GameState(deck=all_cards)
+                game_state.selected_cards = Hand(all_cards[:5])
+
+                self.cfr(game_state, 1, 1, timeout_event, result, i + 1)
+
+                if (i + 1) % self.save_interval == 0:
+                    self.save_ai_progress_to_github()
+                    if self.check_convergence():
+                        break
+
+        except Exception as e:
+            logger.exception(f"Error during training: {e}")
+
+    def cfr(self, game_state: GameState, p0: float, p1: float, 
+            timeout_event: Event, result: Dict, iteration: int) -> float:
+        """Выполнение CFR алгоритма."""
+        if timeout_event.is_set():
+            return 0
+
+        try:
+            if game_state.is_terminal():
+                return game_state.get_payoff()
+
+            player = game_state.get_current_player()
+            info_set = game_state.get_information_set()
+
+            with self._lock:
+                if info_set not in self.nodes:
+                    actions = game_state.get_actions()
+                    if not actions:
+                        return 0
+                    self.nodes[info_set] = CFRNode(actions)
+                node = self.nodes[info_set]
+
+            strategy = node.get_strategy(p0 if player == 0 else p1)
+            util = defaultdict(float)
+            node_util = 0
+
+            for action in node.actions:
+                if timeout_event.is_set():
+                    return 0
+
+                next_state = game_state.apply_action(action)
+                if player == 0:
+                    util[action] = -self.cfr(next_state, p0 * strategy[action], 
+                                           p1, timeout_event, result, iteration)
+                else:
+                    util[action] = -self.cfr(next_state, p0, 
+                                           p1 * strategy[action], timeout_event, 
+                                           result, iteration)
+                node_util += strategy[action] * util[action]
+
+            if not timeout_event.is_set():
+                with self._lock:
+                    if player == 0:
+                        for action in node.actions:
+                            node.regret_sum[action] += p1 * (util[action] - node_util)
+                    else:
+                        for action in node.actions:
+                            node.regret_sum[action] += p0 * (util[action] - node_util)
+
+            return node_util
+
+        except Exception as e:
+            logger.exception(f"Error in CFR calculation: {e}")
+            return 0
+
+    def get_move(self, game_state: GameState, timeout_event: Event, result: SafeResult):
+        """Получение следующего хода."""
+        try:
+            actions = game_state.get_actions()
+            if not actions:
+                result.set_move({'error': 'No available moves'})
+                return
+
+            info_set = game_state.get_information_set()
+            with self._lock:
+                if info_set in self.nodes:
+                    strategy = self.nodes[info_set].get_average_strategy()
+                    best_move = max(strategy.items(), key=lambda x: x[1])[0]
+                else:
+                    best_move = random.choice(actions)
+
+            result.set_move(best_move)
+
+        except Exception as e:
+            logger.exception(f"Error getting move: {e}")
+            result.set_move({'error': str(e)})
+
+    def save_ai_progress_to_github(self) -> bool:
+        """Сохранение прогресса на GitHub."""
+        try:
+            with self._lock:
+                data = {
+                    'nodes': self.nodes,
+                    'iterations': self.iterations,
+                    'stop_threshold': self.stop_threshold
+                }
+            return github_utils.save_ai_progress(data, 'cfr_data.pkl')
+        except Exception as e:
+            logger.error(f"Error saving AI progress: {e}")
+            return False
+
+    def load_ai_progress_from_github(self) -> bool:
+        """Загрузка прогресса с GitHub."""
+        try:
+            if github_utils.load_ai_progress_from_github():
+                data = utils.load_ai_progress()
+                if data and isinstance(data, dict):
+                    with self._lock:
+                        self.nodes = data.get('nodes', {})
+                        self.iterations = data.get('iterations', self.iterations)
+                        self.stop_threshold = data.get('stop_threshold', self.stop_threshold)
+                    return True
+            return False
+        except Exception as e:
+            logger.error(f"Error loading AI progress: {e}")
+            return False
+
+    def check_convergence(self) -> bool:
+        """Проверка сходимости."""
+        try:
+            with self._lock:
+                for node in self.nodes.values():
+                    avg_strategy = node.get_average_strategy()
+                    uniform_strategy = 1.0 / len(node.actions)
+                    for prob in avg_strategy.values():
+                        if abs(prob - uniform_strategy) > self.stop_threshold:
+                            return False
+                return True
+        except Exception as e:
+            logger.error(f"Error checking convergence: {e}")
+            return False

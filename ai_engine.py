@@ -753,7 +753,7 @@ class CFRAgent:
         except Exception as e:
             logger.error(f"Error loading AI progress: {e}")
             return False
-            def save_ai_progress_to_github(self) -> bool:
+    def save_ai_progress_to_github(self) -> bool:
         """Saves AI progress to GitHub with error handling."""
         try:
             with self._lock:

@@ -139,10 +139,10 @@ class Board:
         return getattr(self, line)
         class GameState:
     def __init__(self, selected_cards: Optional[List[Card]] = None,
-                 board: Optional[Board] = None,
-                 discarded_cards: Optional[List[Card]] = None,
-                 ai_settings: Optional[Dict] = None,
-                 deck: Optional[List[Card]] = None):
+        board: Optional[Board] = None,
+        discarded_cards: Optional[List[Card]] = None,
+        ai_settings: Optional[Dict] = None,
+        deck: Optional[List[Card]] = None):
         self.selected_cards = Hand(selected_cards) if selected_cards is not None else Hand()
         self.board = board if board is not None else Board()
         self.discarded_cards = discarded_cards if discarded_cards is not None else []

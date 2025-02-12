@@ -200,7 +200,7 @@ class GameState:
                         }
                         # Проверка на выбывшие карты
                         # ИСПРАВЛЕНО: сравниваем словари, а не объекты Card
-                        if not any(card.to_dict() in used_cards for card in action['top'] + action['middle'] + action['bottom']):
+                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom']):
                             actions.append(action)
 
 
@@ -221,7 +221,7 @@ class GameState:
                                             'discarded': self.selected_cards.cards[discarded_index]
                                         }
                                         # Проверка на выбывшие карты
-                                        if not any(card.to_dict() in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
+                                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
                                             actions.append(action)
 
                     else: # Обычный ход (не последний)
@@ -239,7 +239,7 @@ class GameState:
                                             'discarded': self.selected_cards.cards[discarded_index]
                                         }
                                         # Проверка на выбывшие карты
-                                        if not any(card.to_dict() in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
+                                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
                                             actions.append(action)
 
                 elif placement_mode == "fantasy":
@@ -305,7 +305,7 @@ class GameState:
                                     'discarded': None  # Ничего не сбрасываем
                                 }
                                 # Проверка на выбывшие карты
-                                if not any(card.to_dict() in used_cards for card in action['top'] + action['middle'] + action['bottom']):
+                                if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
                                     actions.append(action)
 
             except Exception as e:

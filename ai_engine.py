@@ -184,8 +184,8 @@ class GameState:
                 [card.to_dict() for card in self.board.bottom] +
                 [card.to_dict() for card in self.selected_cards]
             )
-
-        logger.debug(f"get_actions called - num_cards: {num_cards}, selected_cards: {self.selected_cards}, board: {self.board}, placement_mode: {placement_mode}, used_cards: {used_cards}") # Добавлено для отладки
+        logger.debug(f"get_actions called - num_cards: {num_cards}, selected_cards: {self.selected_cards}, board: {self.board}, placement_mode: {placement_mode}, used_cards: {used_cards}")
+        logger.debug(f"Тип discarded_cards: {type(self.discarded_cards)}, содержимое: {self.discarded_cards}") # ДОБАВЛЕНО
 
         if num_cards > 0:
             try:
@@ -1177,4 +1177,4 @@ class RandomAgent:
 
         best_move = random.choice(actions) if actions else None
         logger.debug(f"Selected move: {best_move}")
-        result['move'] = best_move  # Correctly return the move
+        result['move'] = best_move  # Correctly return the move                        

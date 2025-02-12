@@ -41,7 +41,7 @@ class Card:
         return Card(card_dict['rank'], card_dict['suit'])
 
     @staticmethod
-    def get_all_cards(self):
+    def get_all_cards(): # Исправлено: убрали self
         return [Card(rank, suit) for rank in Card.RANKS for suit in Card.SUITS]
 
 class Hand:

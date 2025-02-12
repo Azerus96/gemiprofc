@@ -383,18 +383,18 @@
         </div>
         <div class="setting-group">
             <label for="aiTime">Время на ход ИИ (сек):</label>
-            <input type="range" id="aiTime" min="1" max="60" value="5">
-            <span id="aiTimeValue">5</span>
+            <input type="range" id="aiTime" min="1" max="60" value="60">
+            <span id="aiTimeValue">60</span>
         </div>
         <div class="setting-group">
             <label for="iterations">Количество итераций MCCFR:</label>
-            <input type="range" id="iterations" min="100" max="100000" value="10000">
-            <span id="iterationsValue">10000</span>
+            <input type="range" id="iterations" min="100" max="100000" value="100000">
+            <span id="iterationsValue">100000</span>
         </div>
         <div class="setting-group">
             <label for="stopThreshold">Порог остановки обучения:</label>
-            <input type="range" id="stopThreshold" min="0.0001" max="0.1" value="0.001" step="0.0001">
-            <span id="stopThresholdValue">0.001</span>
+            <input type="range" id="stopThreshold" min="0.0001" max="0.1" value="0.0001" step="0.0001">
+            <span id="stopThresholdValue">0.0001</span>
         </div>
         <div class="setting-group">
             <label for="aiType">Тип ИИ:</label>
@@ -490,7 +490,6 @@
         }
 
         function createCard(cardData) {
-            //console.log("createCard() - Начало. cardData:", cardData); // Убрал для чистоты, есть в getGameStateFromDOM
             const card = document.createElement('div');
             card.className = 'card';
             card.dataset.rank = cardData.rank;
@@ -527,14 +526,11 @@
             card.addEventListener('dragend', (e) => {
                 card.style.opacity = '1';
             });
-
-            //console.log("createCard() - Конец. Создана карта:", card); // Убрал для чистоты, есть в getGameStateFromDOM
             return card;
         }
 
 
         function setupTable() {
-            //console.log("setupTable() - Начало"); // Убрал для чистоты
             const rows = ['top', 'middle', 'bottom'];
             const numCards = [3, 5, 5];
 
@@ -559,7 +555,6 @@
                     rowElement.appendChild(slot);
                 }
             });
-            //console.log("setupTable() - Конец. Таблица настроена."); // Убрал для чистоты
         }
 
         function resetCombinationArea() {
@@ -740,7 +735,7 @@
                 iterations: document.getElementById('iterations').value,
                 stopThreshold: document.getElementById('stopThreshold').value,
                 aiType: document.getElementById('aiType').value,
-                placementMode: 'standard' // Добавлено
+                placementMode: 'standard'
             };
         }
 
@@ -836,14 +831,12 @@
 
         combinationArea.querySelectorAll('.card').forEach(card => {
             const cardKey = `${card.dataset.rank}${card.dataset.suit}`;
-            // Исправлено: проверяем, *ЕСТЬ* ли карта на доске, прежде чем добавлять в unavailable
             if (!isCardOnBoard({rank: card.dataset.rank, suit: card.dataset.suit})) {
-                unavailableCards.delete(cardKey); // Удаляем, а не добавляем
+                unavailableCards.delete(cardKey);
                 removedCards.push({ rank: card.dataset.rank, suit: card.dataset.suit });
             }
             card.parentElement.classList.remove('taken');
             card.remove();
-            //updateSelectorItemAvailability(card.dataset.rank, card.dataset.suit); // Убрал, так как не используется
         });
 
         // Отправляем информацию об удаленных картах на сервер
@@ -907,15 +900,15 @@
                 selected_cards: [],
                 board: { top: [], middle: [], bottom: [] },
                 discarded_cards: [],
-                removed_cards: [], // Добавили
-                ai_settings: {
+                removed_cards: [],
+                ai_settings: {  //  Убрал placementMode
                     fantasyType: document.getElementById('fantasyType').value,
                     fantasyMode: document.getElementById('fantasyMode').checked,
                     aiTime: document.getElementById('aiTime').value,
                     iterations: document.getElementById('iterations').value,
                     stopThreshold: document.getElementById('stopThreshold').value,
                     aiType: document.getElementById('aiType').value,
-                    placementMode: 'standard'  // Добавили placementMode
+                    placementMode: 'standard'
                 }
             })
         })
@@ -986,7 +979,7 @@
             iterations: document.getElementById('iterations').value,
             stopThreshold: document.getElementById('stopThreshold').value,
             aiType: document.getElementById('aiType').value,
-            placementMode: 'standard' // Добавлено
+            placementMode: 'standard'
         };
 
         console.log("saveGameStateToSession() - Сохранение состояния:", { ...gameState, ai_settings: aiSettings });
@@ -1016,7 +1009,7 @@
             iterations: document.getElementById('iterations').value,
             stopThreshold: document.getElementById('stopThreshold').value,
             aiType: document.getElementById('aiType').value,
-            placementMode: 'standard' // Добавлено
+            placementMode: 'standard'
         };
 
         console.log("saveSettings() - Сохранение настроек:", aiSettings);
@@ -1028,7 +1021,7 @@
                 selected_cards: [],
                 board: { top: [], middle: [], bottom: [] },
                 discarded_cards: [],
-                removed_cards: [], // Добавили
+                removed_cards: [],
                 ai_settings: aiSettings
             })
         })

@@ -27,23 +27,27 @@ def initialize_ai_agent(ai_settings):
     try:
         iterations = int(ai_settings.get('iterations', 10000))  # Значение по умолчанию 10000
         stop_threshold = float(ai_settings.get('stopThreshold', 0.001))
-    except ValueError:
-        logger.error("Неверные значения iterations или stopThreshold. Используются значения по умолчанию.")
+    except ValueError as e:
+        logger.error(f"Неверные значения iterations или stopThreshold: {e}. Используются значения по умолчанию.")
         iterations = 10000  # Установим более высокое значение по умолчанию
         stop_threshold = 0.001
 
     cfr_agent = CFRAgent(iterations=iterations, stop_threshold=stop_threshold)
+    logger.info(f"AI агент MCCFR инициализирован: {cfr_agent}") # ADDED LOG
 
     if os.environ.get("AI_PROGRESS_TOKEN"):
         try:
             # Загрузка с GitHub
+            logger.info("Попытка загрузить прогресс AI с GitHub...") # ADDED LOG
             if github_utils.load_ai_progress_from_github():
                 data = utils.load_ai_progress('cfr_data.pkl') # Загружаем локально ПОСЛЕ GitHub
                 if data:
                     cfr_agent.nodes = data['nodes']
                     cfr_agent.iterations = data['iterations']
                     cfr_agent.stop_threshold = data.get('stop_threshold', 0.0001)
-                logger.info("Прогресс AI успешно загружен.")
+                    logger.info("Прогресс AI успешно загружен и применен к агенту.") # ADDED LOG
+                else:
+                    logger.warning("Прогресс AI с GitHub загружен, но данные повреждены или пусты.") # ADDED LOG
             else:
                 logger.warning("Не удалось загрузить прогресс AI с GitHub.")
 
@@ -124,14 +128,14 @@ def training():
 
 @app.route('/update_state', methods=['POST'])
 def update_state():
-    logger.debug("Обработка запроса обновления состояния - START") # ADDED LOG
+    logger.debug("Обработка запроса обновления состояния - START")
     if not request.is_json:
         logger.error("Ошибка: Запрос не в формате JSON")
         return jsonify({'error': 'Content type must be application/json'}), 400
 
     try:
         game_state = request.get_json()
-        logger.debug(f"Получено обновление состояния игры: {game_state}")
+        logger.debug(f"Получено обновление состояния игры: game_state type: {type(game_state)}, данные: {game_state}")
 
         if not isinstance(game_state, dict):
             logger.error("Ошибка: Неверный формат состояния игры (не словарь)")
@@ -175,20 +179,19 @@ def update_state():
                         Card.from_dict(card) if isinstance(card, dict) else None # ИСПРАВЛЕНО!
                         for card in game_state[key]
                     ]
-                    logger.debug(f"Обновлены discarded_cards в сессии: {session['game_state']['discarded_cards']}") # ADDED LOG
+                    logger.debug(f"Обновлены discarded_cards в сессии: {session['game_state']['discarded_cards']}")
                 else:
                     session['game_state'][key] = [
                         Card.from_dict(card) if isinstance(card, dict) else None
                         for card in game_state[key]
                     ]
-                    logger.debug(f"Обновлены selected_cards в сессии: {session['game_state']['selected_cards']}") # ADDED LOG
-
+                    logger.debug(f"Обновлены selected_cards в сессии: {session['game_state']['selected_cards']}")
 
         # Добавляем карты, удаленные через "-", в discarded_cards
         if 'removed_cards' in game_state:  # 'removed_cards' приходит из frontend
             removed_cards = [Card.from_dict(card) for card in game_state['removed_cards']]
             session['game_state']['discarded_cards'].extend([card.to_dict() for card in removed_cards]) #Сохраняем в виде словаря
-            logger.debug(f"removed_cards добавлены в discarded_cards сессии: {session['game_state']['discarded_cards']}") # ADDED LOG
+            logger.debug(f"removed_cards добавлены в discarded_cards сессии: {session['game_state']['discarded_cards']}")
 
         if 'ai_settings' in game_state:
             session['game_state']['ai_settings'] = game_state['ai_settings']
@@ -200,7 +203,7 @@ def update_state():
             session['previous_ai_settings'] = game_state.get('ai_settings', {}).copy()
 
         logger.debug(f"Состояние сессии ПОСЛЕ обновления: {session['game_state']}")
-        logger.debug("Обработка запроса обновления состояния - END") # ADDED LOG
+        logger.debug("Обработка запроса обновления состояния - END")
         return jsonify({'status': 'success'})
 
     except Exception as e:
@@ -212,9 +215,9 @@ def ai_move():
     global cfr_agent
     global random_agent
 
-    logger.debug("Обработка запроса хода AI - START") # ADDED LOG
+    logger.debug("Обработка запроса хода AI - START")
     game_state_data = request.get_json()
-    logger.debug(f"Получены данные состояния игры для хода AI: game_state_data type: {type(game_state_data)}, данные: {game_state_data}") # ADDED LOG
+    logger.debug(f"Получены данные состояния игры для хода AI: game_state_data type: {type(game_state_data)}, данные: {game_state_data}")
 
     if not isinstance(game_state_data, dict):
         logger.error("Ошибка: game_state_data не является словарем")
@@ -231,14 +234,14 @@ def ai_move():
             logger.error("Ошибка: selected_cards не является списком")
             return jsonify({'error': 'Invalid selected_cards format'}), 400
         selected_cards = [Card.from_dict(card) for card in selected_cards_data]
-        logger.debug(f"Обработанные selected_cards: selected_cards type: {type(selected_cards)}, данные: {selected_cards}") # ADDED LOG
+        logger.debug(f"Обработанные selected_cards: selected_cards type: {type(selected_cards)}, данные: {selected_cards}")
 
         discarded_cards_data = game_state_data.get('discarded_cards', [])
         if not isinstance(discarded_cards_data, list):
             logger.error("Ошибка: discarded_cards не является списком")
             return jsonify({'error': 'Invalid discarded_cards format'}), 400
         discarded_cards = [Card.from_dict(card) for card in discarded_cards_data]
-        logger.debug(f"Обработанные discarded_cards: discarded_cards type: {type(discarded_cards)}, данные: {discarded_cards}") # ADDED LOG
+        logger.debug(f"Обработанные discarded_cards: discarded_cards type: {type(discarded_cards)}, данные: {discarded_cards}")
 
         board_data = game_state_data.get('board', {})
         if not isinstance(board_data, dict):
@@ -275,7 +278,7 @@ def ai_move():
             ai_settings=ai_settings,
             deck=ai_engine.Card.get_all_cards()
         )
-        logger.debug(f"Создано состояние игры: {game_state}, type: {type(game_state)}") # ADDED LOG
+        logger.debug(f"Создано состояние игры: {game_state}, type: {type(game_state)}")
 
         # Проверка терминального состояния
         if game_state.is_terminal():
@@ -323,9 +326,12 @@ def ai_move():
                 return jsonify({'error': 'MCCFR agent not initialized'}), 500
             ai_thread = Thread(target=cfr_agent.get_move,
                              args=(game_state, timeout_event, result))
-        else:  # ai_type == 'random'
+        elif ai_type == 'random':
             ai_thread = Thread(target=random_agent.get_move,
                              args=(game_state, timeout_event, result))
+        else:
+            logger.error(f"Неизвестный тип AI агента: {ai_type}")
+            return jsonify({'error': f'Unknown AI agent type: {ai_type}'}), 400
 
         ai_thread.start()
         ai_thread.join(timeout=int(ai_settings.get('aiTime', 5)))
@@ -337,7 +343,7 @@ def ai_move():
             return jsonify({'error': 'AI move timed out'}), 504
 
         move = result.get('move')
-        logger.debug(f"Получен ход AI: move type: {type(move)}, данные: {move}") # ADDED LOG
+        logger.debug(f"Получен ход AI: move type: {type(move)}, данные: {move}")
         if move is None or 'error' in move:
             logger.error(f"Ошибка хода AI: {move.get('error', 'Unknown error')}")
             return jsonify({'error': move.get('error', 'Unknown error')}), 500
@@ -351,8 +357,7 @@ def ai_move():
     # Сериализация и отправка ответа
     try:
         serialized_move = serialize_move(move, next_available_slots)
-        logger.debug(f"Сериализованный ход: serialized_move type: {type(serialized_move)}, данные: {serialized_move}") # ADDED LOG
-
+        logger.debug(f"Сериализованный ход: serialized_move type: {type(serialized_move)}, данные: {serialized_move}")
 
         #  Обновляем состояние сессии *ДО* расчета роялти
         if move:
@@ -384,17 +389,15 @@ def ai_move():
                 else:
                     session['game_state']['discarded_cards'].append(move['discarded'])
 
-
             logger.debug(f"Обновленная доска в сессии (после хода): {session['game_state']['board']}")
-
 
         # Расчет роялти *ПОСЛЕ* обновления доски в сессии.
         royalties = game_state.calculate_royalties()
-        logger.debug(f"Рассчитанные роялти: royalties type: {type(royalties)}, данные: {royalties}")  # Лог расчета
+        logger.debug(f"Рассчитанные роялти: royalties type: {type(royalties)}, данные: {royalties}")
         total_royalty = sum(royalties.values())
 
         logger.debug(f"Отправка хода AI: {serialized_move}, Роялти: {royalties}, Всего роялти: {total_royalty}")
-        logger.debug("Обработка запроса хода AI - END") # ADDED LOG
+        logger.debug("Обработка запроса хода AI - END")
         return jsonify({
             'move': serialized_move,
             'royalties': royalties,

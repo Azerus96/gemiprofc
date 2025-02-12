@@ -260,9 +260,9 @@ def ai_move():
         game_state = ai_engine.GameState(
             selected_cards=selected_cards,
             board=board,
-            discarded_cards=discarded_cards,  # Убрали removed_cards отсюда
+            discarded_cards=[card.to_dict() for card in discarded_cards],  # ИСПРАВЛЕНО!
             ai_settings=ai_settings,
-            deck=ai_engine.Card.get_all_cards() # Исправлено
+            deck=ai_engine.Card.get_all_cards()
         )
         logger.debug(f"Создано состояние игры: {game_state}")
 
@@ -311,10 +311,10 @@ def ai_move():
                 logger.error("Ошибка: MCCFR агент не инициализирован")
                 return jsonify({'error': 'MCCFR agent not initialized'}), 500
             ai_thread = Thread(target=cfr_agent.get_move,
-                             args=(game_state, timeout_event, result)) # убрали , num_cards
+                             args=(game_state, timeout_event, result))
         else:  # ai_type == 'random'
             ai_thread = Thread(target=random_agent.get_move,
-                             args=(game_state, timeout_event, result)) # убрали , num_cards
+                             args=(game_state, timeout_event, result))
 
         ai_thread.start()
         ai_thread.join(timeout=int(ai_settings.get('aiTime', 5)))

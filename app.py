@@ -36,8 +36,17 @@ def initialize_ai_agent(ai_settings):
 
     if os.environ.get("AI_PROGRESS_TOKEN"):
         try:
-            cfr_agent.load_progress()
-            logger.info("Прогресс AI успешно загружен.")
+            # Загрузка с GitHub
+            if github_utils.load_ai_progress_from_github():
+                data = utils.load_ai_progress('cfr_data.pkl') # Загружаем локально ПОСЛЕ GitHub
+                if data:
+                    cfr_agent.nodes = data['nodes']
+                    cfr_agent.iterations = data['iterations']
+                    cfr_agent.stop_threshold = data.get('stop_threshold', 0.0001)
+                logger.info("Прогресс AI успешно загружен.")
+            else:
+                logger.warning("Не удалось загрузить прогресс AI с GitHub.")
+
         except Exception as e:
             logger.error(f"Ошибка загрузки прогресса AI: {e}")
     else:
@@ -94,10 +103,10 @@ def training():
             'ai_settings': {
                 'fantasyType': 'normal',
                 'fantasyMode': False,
-                'aiTime': '5',
-                'iterations': '10000',  # Установим более высокое значение по умолчанию
-                'stopThreshold': '0.001',
-                'aiType': 'mccfr',
+                'aiTime': '60',  # Изменено на 60
+                'iterations': '100000',  # Изменено на 100000
+                'stopThreshold': '0.0001',  # Изменено на 0.0001
+                'aiType': 'mccfr',  # Изменено на mccfr
                 'placementMode': 'standard'
             }
         }
@@ -185,6 +194,11 @@ def update_state():
                     for card in game_state[key]
                 ]
 
+        # Добавляем карты, удаленные через "-", в discarded_cards
+        if 'removed_cards' in game_state:  # 'removed_cards' приходит из frontend
+            removed_cards = [Card.from_dict(card) for card in game_state['removed_cards']]
+            session['game_state']['discarded_cards'].extend(removed_cards)
+
         if 'ai_settings' in game_state:
             session['game_state']['ai_settings'] = game_state['ai_settings']
 
@@ -271,7 +285,7 @@ def ai_move():
         game_state = ai_engine.GameState(
             selected_cards=selected_cards,
             board=board,
-            discarded_cards=discarded_cards,
+            discarded_cards=discarded_cards + game_state_data.get('removed_cards', []), # Добавили removed_cards
             ai_settings=ai_settings,
             deck=ai_engine.Card.get_all_cards()
         )
@@ -288,7 +302,7 @@ def ai_move():
             # Сохранение прогресса AI (для MCCFR)
             if cfr_agent and ai_settings.get('aiType') == 'mccfr':
                 try:
-                    cfr_agent.save_progress()
+                    cfr_agent.save_progress() # Сначала сохраняем локально
                     logger.info("Прогресс AI сохранен локально.")
                     if github_utils.save_ai_progress_to_github():  # Попытка сохранить на GitHub
                         logger.info("Прогресс AI сохранен на GitHub.")

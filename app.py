@@ -90,48 +90,29 @@ def home():
 def training():
     logger.debug("Обработка запроса страницы тренировки")
 
-    if 'game_state' not in session:
-        logger.info("Инициализация нового состояния игры в сессии")
-        session['game_state'] = {
-            'selected_cards': [],
-            'board': {
-                'top': [None] * 3,
-                'middle': [None] * 5,
-                'bottom': [None] * 5
-            },
-            'discarded_cards': [],
-            'ai_settings': {
-                'fantasyType': 'normal',
-                'fantasyMode': False,
-                'aiTime': '60',  # Изменено на 60
-                'iterations': '100000',  # Изменено на 100000
-                'stopThreshold': '0.0001',  # Изменено на 0.0001
-                'aiType': 'mccfr',  # Изменено на mccfr
-                'placementMode': 'standard'
-            }
+    # Инициализация состояния, даже если оно уже есть в сессии (для настроек по умолчанию)
+    session['game_state'] = {
+        'selected_cards': [],
+        'board': {
+            'top': [None] * 3,
+            'middle': [None] * 5,
+            'bottom': [None] * 5
+        },
+        'discarded_cards': [],
+        'ai_settings': {  # Устанавливаем правильные значения по умолчанию
+            'fantasyType': 'normal',
+            'fantasyMode': False,
+            'aiTime': '60',
+            'iterations': '100000',
+            'stopThreshold': '0.0001',
+            'aiType': 'mccfr',
+            'placementMode': 'standard'
         }
-        logger.info(f"Инициализировано новое состояние игры: {session['game_state']}")
-    else:
-        logger.info("Загрузка существующего состояния игры из сессии")
-        # Преобразование карт из словарей в объекты Card
-        for key in ['selected_cards', 'discarded_cards']:
-            if key in session['game_state']:
-                session['game_state'][key] = [
-                    Card.from_dict(card_dict) for card_dict in session['game_state'][key]
-                    if isinstance(card_dict, dict)
-                ]
+    }
+    logger.info(f"Инициализировано/перезаписано состояние игры: {session['game_state']}")
 
-        # Преобразование карт на доске
-        for line in ['top', 'middle', 'bottom']:
-            if line in session['game_state']['board']:
-                session['game_state']['board'][line] = [
-                    Card.from_dict(card_dict) if isinstance(card_dict, dict) else None
-                    for card_dict in session['game_state']['board'][line]
-                ]
 
-        logger.info(f"Загружено существующее состояние игры: {session['game_state']}")
-
-    # Проверка необходимости реинициализации AI
+    # Проверка необходимости реинициализации AI (оставляем как было)
     if (cfr_agent is None or
         session['game_state']['ai_settings'] != session.get('previous_ai_settings')):
         initialize_ai_agent(session['game_state']['ai_settings'])
@@ -158,7 +139,7 @@ def update_state():
 
         # Инициализация состояния игры в сессии, если его нет
         if 'game_state' not in session:
-            session['game_state'] = {}
+            session['game_state'] = {}  # Пустой словарь, если не было
             logger.info("Инициализировано новое состояние сессии при обновлении.")
 
         logger.debug(f"Состояние сессии ДО обновления: {session['game_state']}")
@@ -275,19 +256,13 @@ def ai_move():
         logger.debug(f"Свободных слотов: {free_slots}")
         logger.debug(f"Количество выбранных карт: {num_cards}")
 
-        # Убрали проверку:
-        # if num_cards > free_slots:
-        #     logger.error(f"Ошибка: выбрано {num_cards} карт, но доступно только {free_slots} слотов")
-        #     return jsonify({'error': f'Можно выбрать максимум {free_slots} карт'}), 400
-
-
         # Создание состояния игры
         game_state = ai_engine.GameState(
             selected_cards=selected_cards,
             board=board,
-            discarded_cards=discarded_cards + game_state_data.get('removed_cards', []), # Добавили removed_cards
+            discarded_cards=discarded_cards,  # Убрали removed_cards отсюда
             ai_settings=ai_settings,
-            deck=ai_engine.Card.get_all_cards()
+            deck=ai_engine.Card.get_all_cards() # Исправлено
         )
         logger.debug(f"Создано состояние игры: {game_state}")
 

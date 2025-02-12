@@ -732,6 +732,18 @@
           //  console.log("handleCardSelection() - Конец.");  // Убрал для чистоты
         }
 
+      function getAiSettings() {
+            return {
+                fantasyType: document.getElementById('fantasyType').value,
+                fantasyMode: document.getElementById('fantasyMode').checked,
+                aiTime: document.getElementById('aiTime').value,
+                iterations: document.getElementById('iterations').value,
+                stopThreshold: document.getElementById('stopThreshold').value,
+                aiType: document.getElementById('aiType').value,
+                placementMode: 'standard' // Добавлено
+            };
+        }
+
       function distributeCards() {
         console.log("distributeCards() - Начало");
         const gameState = getGameStateFromDOM();
@@ -753,15 +765,7 @@
 
         if (numCards > 0) {
             console.log("distributeCards() - Вызов ИИ для распределения карт");
-            const aiSettings = {
-                fantasyType: document.getElementById('fantasyType').value,
-                fantasyMode: isFantasyMode,
-                aiTime: document.getElementById('aiTime').value,
-                iterations: document.getElementById('iterations').value,
-                stopThreshold: document.getElementById('stopThreshold').value,
-                aiType: document.getElementById('aiType').value,
-                placementMode: placementMode // Передаем режим размещения
-            };
+            const aiSettings = getAiSettings();
 
             const requestData = JSON.stringify({
                 selected_cards: gameState.selected_cards,
@@ -828,16 +832,48 @@
     function removeSelectedCards() {
         console.log("removeSelectedCards() - Начало");
         const combinationArea = document.getElementById('combination-area');
+        const removedCards = [];
+
         combinationArea.querySelectorAll('.card').forEach(card => {
             const cardKey = `${card.dataset.rank}${card.dataset.suit}`;
             // Исправлено: проверяем, *ЕСТЬ* ли карта на доске, прежде чем добавлять в unavailable
             if (!isCardOnBoard({rank: card.dataset.rank, suit: card.dataset.suit})) {
                 unavailableCards.delete(cardKey); // Удаляем, а не добавляем
+                removedCards.push({ rank: card.dataset.rank, suit: card.dataset.suit });
             }
             card.parentElement.classList.remove('taken');
             card.remove();
             //updateSelectorItemAvailability(card.dataset.rank, card.dataset.suit); // Убрал, так как не используется
         });
+
+        // Отправляем информацию об удаленных картах на сервер
+        fetch('/update_state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...getGameStateFromDOM(),
+                removed_cards: removedCards, // Добавляем удаленные карты
+                ai_settings: getAiSettings()
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+          if (data.error) {
+            console.error("Ошибка при обновлении состояния:", data.error);
+            alert("Ошибка при обновлении состояния: " + data.error);
+          } else {
+            console.log("removeSelectedCards() - Сервер: состояние обновлено, удаленные карты:", removedCards);
+          }
+        })
+        .catch(error => {
+            console.error('removeSelectedCards() - Ошибка при обновлении состояния:', error);
+        });
+
          console.log("removeSelectedCards() - Конец. Карты удалены из комбинации.");
     }
 
@@ -871,6 +907,7 @@
                 selected_cards: [],
                 board: { top: [], middle: [], bottom: [] },
                 discarded_cards: [],
+                removed_cards: [], // Добавили
                 ai_settings: {
                     fantasyType: document.getElementById('fantasyType').value,
                     fantasyMode: document.getElementById('fantasyMode').checked,
@@ -991,6 +1028,7 @@
                 selected_cards: [],
                 board: { top: [], middle: [], bottom: [] },
                 discarded_cards: [],
+                removed_cards: [], // Добавили
                 ai_settings: aiSettings
             })
         })

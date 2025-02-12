@@ -171,18 +171,18 @@ class GameState:
         # ИСПРАВЛЕНО: преобразуем self.board.* в списки словарей
         if sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom]) == 0:  # Первый ход
             used_cards = set(
-                [card.to_dict() for card in self.discarded_cards] +
-                [card.to_dict() for card in self.board.top] +
-                [card.to_dict() for card in self.board.middle] +
-                [card.to_dict() for card in self.board.bottom]
+                self.discarded_cards +
+                self.board.top +
+                self.board.middle +
+                self.board.bottom
             )
         else:
             used_cards = set(
-                [card.to_dict() for card in self.discarded_cards] +
-                [card.to_dict() for card in self.board.top] +
-                [card.to_dict() for card in self.board.middle] +
-                [card.to_dict() for card in self.board.bottom] +
-                [card.to_dict() for card in self.selected_cards]
+                self.discarded_cards +
+                self.board.top +
+                self.board.middle +
+                self.board.bottom +
+                list(self.selected_cards)
             )
         logger.debug(f"get_actions called - num_cards: {num_cards}, selected_cards: {self.selected_cards}, board: {self.board}, placement_mode: {placement_mode}, used_cards: {used_cards}")
         logger.debug(f"Тип discarded_cards: {type(self.discarded_cards)}, содержимое: {self.discarded_cards}") # ДОБАВЛЕНО
@@ -314,7 +314,7 @@ class GameState:
 
         logger.debug(f"Generated actions: {actions}")
         return actions
-    
+
     def is_valid_fantasy_entry(self, action):
         """Checks if an action leads to a valid fantasy mode entry."""
         new_board = Board()
@@ -1158,7 +1158,7 @@ class CFRAgent:
         if data:
             self.nodes = data['nodes']
             self.iterations = data['iterations']
-            self.stop_threshold = data.get('stop_threshold', 0.001) # Default value if not present
+            self.stop_threshold = data.get('stop_threshold', 0.0001) # Default value if not present
 
 class RandomAgent:
     def __init__(self):

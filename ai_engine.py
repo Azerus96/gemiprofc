@@ -159,7 +159,9 @@ class GameState:
 
     def get_actions(self):
         """Returns the valid actions for the current state."""
+        logger.debug("get_actions - START") # ADDED LOG
         if self.is_terminal():
+            logger.debug("get_actions - Game is terminal, returning empty actions") # ADDED LOG
             return []  # No actions in a terminal state
 
         num_cards = len(self.selected_cards)
@@ -186,6 +188,7 @@ class GameState:
             )
         logger.debug(f"get_actions called - num_cards: {num_cards}, selected_cards: {self.selected_cards}, board: {self.board}, placement_mode: {placement_mode}, used_cards: {used_cards}")
         logger.debug(f"Тип discarded_cards: {type(self.discarded_cards)}, содержимое: {self.discarded_cards}") # ДОБАВЛЕНО
+        logger.debug(f"Тип self.discarded_cards[0] if self.discarded_cards else None: {type(self.discarded_cards[0]) if self.discarded_cards else None}, содержимое: {self.discarded_cards[0] if self.discarded_cards else None}") # ADDED LOG
 
         if num_cards > 0:
             try:
@@ -221,6 +224,10 @@ class GameState:
                                             'discarded': self.selected_cards.cards[discarded_index]
                                         }
                                         # Проверка на выбывшие карты
+                                        logger.debug(f"Перед проверкой used_cards - used_cards type: {type(used_cards)}, used_cards: {used_cards}") # ADDED LOG
+                                        logger.debug(f"Перед проверкой used_cards - action type: {type(action)}, action: {action}") # ADDED LOG
+                                        for card_check in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else []): # ADDED LOOP
+                                            logger.debug(f"Тип card в action: {type(card_check)}, содержимое: {card_check}") # ADDED LOOP
                                         if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
                                             actions.append(action)
 
@@ -239,6 +246,10 @@ class GameState:
                                             'discarded': self.selected_cards.cards[discarded_index]
                                         }
                                         # Проверка на выбывшие карты
+                                        logger.debug(f"Перед проверкой used_cards - used_cards type: {type(used_cards)}, used_cards: {used_cards}") # ADDED LOG
+                                        logger.debug(f"Перед проверкой used_cards - action type: {type(action)}, action: {action}") # ADDED LOG
+                                        for card_check in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else []): # ADDED LOOP
+                                            logger.debug(f"Тип card в action: {type(card_check)}, содержимое: {card_check}") # ADDED LOOP
                                         if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
                                             actions.append(action)
 
@@ -305,7 +316,7 @@ class GameState:
                                     'discarded': None  # Ничего не сбрасываем
                                 }
                                 # Проверка на выбывшие карты
-                                if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
+                                if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom']):
                                     actions.append(action)
 
             except Exception as e:
@@ -313,8 +324,10 @@ class GameState:
                 return []
 
         logger.debug(f"Generated actions: {actions}")
+        logger.debug("get_actions - END") # ADDED LOG
         return actions
 
+    # ... (остальной код ai_engine.py без изменений)
     def is_valid_fantasy_entry(self, action):
         """Checks if an action leads to a valid fantasy mode entry."""
         new_board = Board()
@@ -539,7 +552,7 @@ class GameState:
         """Evaluates the hand and returns a rank (lower is better) and a score."""
 
         if not cards or not all(isinstance(card, Card) for card in cards):
-            return 11, 0 # Return a low rank for invalid hands
+            return 11, 0  # Return a low rank for invalid hands
 
         n = len(cards)
         if n == 5:

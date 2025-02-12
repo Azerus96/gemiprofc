@@ -264,6 +264,113 @@ class GameState:
                                     'middle': list(p[3:8]),
                                     'bottom': list(p[8:13]),
                                     'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                                }    def get_actions(self):
+        """Returns the valid actions for the current state."""
+        if self.is_terminal():
+            return []  # No actions in a terminal state
+
+        num_cards = len(self.selected_cards)
+        actions = []
+        placement_mode = self.ai_settings.get('placementMode', 'standard') # По умолчанию стандартный режим
+
+        # Добавляем проверку на выбывшие карты
+        # ИСПРАВЛЕНО: selected_cards НЕ включаем в used_cards на первом ходу!
+        if sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom]) == 0:  # Первый ход
+            used_cards = set(self.discarded_cards + self.board.top + self.board.middle + self.board.bottom)
+        else:
+            used_cards = set(self.discarded_cards + self.board.top + self.board.middle + self.board.bottom + list(self.selected_cards))
+
+
+        logger.debug(f"get_actions called - num_cards: {num_cards}, selected_cards: {self.selected_cards}, board: {self.board}, placement_mode: {placement_mode}")
+
+        if num_cards > 0:
+            try:
+                if placement_mode == "first_deal":  # Первая раздача (5 карт)
+                    # Размещаем все 5 карт
+                    for p in itertools.permutations(self.selected_cards.cards):
+                        action = {
+                            'top': list(p[:1]),
+                            'middle': list(p[1:3]),
+                            'bottom': list(p[3:5]),
+                            'discarded': None  # Ничего не сбрасываем
+                        }
+                        # Проверка на выбывшие карты
+                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom']):
+                            actions.append(action)
+
+
+                elif placement_mode == "standard":  # Стандартный ход (3 карты)
+                    # ИЗМЕНЕНИЕ: Добавлена логика для последнего хода
+                    placed_cards = sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom])
+                    if placed_cards == 11:  # Последний ход
+                        # Размещаем 2 карты, 1 сбрасываем
+                        for discarded_index in range(3):
+                            remaining_cards = [card for i, card in enumerate(self.selected_cards.cards) if i != discarded_index]
+                            for top_count in range(min(len(remaining_cards) + 1, 3 - len(self.board.top))):
+                                for middle_count in range(min(len(remaining_cards) - top_count + 1, 5 - len(self.board.middle))):
+                                    bottom_count = len(remaining_cards) - top_count - middle_count
+                                    if bottom_count <= (5 - len(self.board.bottom)):
+                                        action = {
+                                            'top': remaining_cards[:top_count],
+                                            'middle': remaining_cards[top_count:top_count + middle_count],
+                                            'bottom': remaining_cards[top_count + middle_count:],
+                                            'discarded': self.selected_cards.cards[discarded_index]
+                                        }
+                                        # Проверка на выбывшие карты
+                                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + [action['discarded']]):
+                                            actions.append(action)
+
+                    else: # Обычный ход (не последний)
+                        # Размещаем 2 карты, 1 сбрасываем
+                        for discarded_index in range(3):
+                            remaining_cards = [card for i, card in enumerate(self.selected_cards.cards) if i != discarded_index]
+                            for top_count in range(min(len(remaining_cards) + 1, 3 - len(self.board.top))):
+                                for middle_count in range(min(len(remaining_cards) - top_count + 1, 5 - len(self.board.middle))):
+                                    bottom_count = len(remaining_cards) - top_count - middle_count
+                                    if bottom_count <= (5 - len(self.board.bottom)):
+                                        action = {
+                                            'top': remaining_cards[:top_count],
+                                            'middle': remaining_cards[top_count:top_count + middle_count],
+                                            'bottom': remaining_cards[top_count + middle_count:],
+                                            'discarded': self.selected_cards.cards[discarded_index]
+                                        }
+                                        # Проверка на выбывшие карты
+                                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + [action['discarded']]):
+                                            actions.append(action)
+
+                elif placement_mode == "fantasy":
+                    # ... (логика для фантазии) ... (без изменений)
+                    if self.ai_settings.get('fantasyMode'):
+                        valid_fantasy_repeats = []
+                        for p in itertools.permutations(self.selected_cards.cards):
+                            action = {
+                                'top': list(p[:3]),
+                                'middle': list(p[3:8]),
+                                'bottom': list(p[8:13]),
+                                'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                            }
+                            if self.is_valid_fantasy_repeat(action):
+                                valid_fantasy_repeats.append(action)
+                        if valid_fantasy_repeats:
+                            actions = sorted(valid_fantasy_repeats, key=lambda a: self.calculate_action_royalty(a), reverse=True)
+                        else:  # Если повтор фантазии невозможен
+                            actions = sorted([
+                                {
+                                    'top': list(p[:3]),
+                                    'middle': list(p[3:8]),
+                                    'bottom': list(p[8:13]),
+                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                                } for p in itertools.permutations(self.selected_cards.cards)
+                            ], key=lambda a: self.calculate_action_royalty(a), reverse=True)
+
+                    else: # Если не в режиме фантазии, то проверяем можем ли войти
+                        valid_fantasy_entries = []
+                        for p in itertools.permutations(self.selected_cards.cards):
+                                action = {
+                                    'top': list(p[:3]),
+                                    'middle': list(p[3:8]),
+                                    'bottom': list(p[8:13]),
+                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
                                 }
                                 if self.is_valid_fantasy_entry(action):
                                     valid_fantasy_entries.append(action)

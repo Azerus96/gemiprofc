@@ -11,7 +11,7 @@ import logging
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG,
-                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -170,15 +170,21 @@ def update_state():
         # Обновление других ключей.  Преобразуем словари в объекты Card.
         for key in ['selected_cards', 'discarded_cards']:
             if key in game_state:
-                session['game_state'][key] = [
-                    Card.from_dict(card) if isinstance(card, dict) else None
-                    for card in game_state[key]
-                ]
+                if key == 'discarded_cards':
+                    session['game_state'][key] = [
+                        card for card in game_state[key]
+                    ]
+                else:
+                    session['game_state'][key] = [
+                        Card.from_dict(card) if isinstance(card, dict) else None
+                        for card in game_state[key]
+                    ]
+
 
         # Добавляем карты, удаленные через "-", в discarded_cards
         if 'removed_cards' in game_state:  # 'removed_cards' приходит из frontend
             removed_cards = [Card.from_dict(card) for card in game_state['removed_cards']]
-            session['game_state']['discarded_cards'].extend(removed_cards)
+            session['game_state']['discarded_cards'].extend([card.to_dict() for card in removed_cards]) #Сохраняем в виде словаря
 
         if 'ai_settings' in game_state:
             session['game_state']['ai_settings'] = game_state['ai_settings']
@@ -260,7 +266,7 @@ def ai_move():
         game_state = ai_engine.GameState(
             selected_cards=selected_cards,
             board=board,
-            discarded_cards=[card.to_dict() for card in discarded_cards] if discarded_cards else [],  # ИСПРАВЛЕНО!
+            discarded_cards=discarded_cards_data,  # Передаём как есть (список словарей)
             ai_settings=ai_settings,
             deck=ai_engine.Card.get_all_cards()
         )
@@ -311,10 +317,10 @@ def ai_move():
                 logger.error("Ошибка: MCCFR агент не инициализирован")
                 return jsonify({'error': 'MCCFR agent not initialized'}), 500
             ai_thread = Thread(target=cfr_agent.get_move,
-                             args=(game_state, timeout_event, result))
+                             args=(game_state, timeout_event, result)) # убрали , num_cards
         else:  # ai_type == 'random'
             ai_thread = Thread(target=random_agent.get_move,
-                             args=(game_state, timeout_event, result))
+                             args=(game_state, timeout_event, result)) # убрали , num_cards
 
         ai_thread.start()
         ai_thread.join(timeout=int(ai_settings.get('aiTime', 5)))

@@ -167,7 +167,11 @@ class GameState:
         placement_mode = self.ai_settings.get('placementMode', 'standard') # По умолчанию стандартный режим
 
         # Добавляем проверку на выбывшие карты
-        used_cards = set(self.discarded_cards + self.board.top + self.board.middle + self.board.bottom + list(self.selected_cards))
+        # ИСПРАВЛЕНО: selected_cards НЕ включаем в used_cards на первом ходу!
+        if sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom]) == 0:  # Первый ход
+            used_cards = set(self.discarded_cards + self.board.top + self.board.middle + self.board.bottom)
+        else:
+            used_cards = set(self.discarded_cards + self.board.top + self.board.middle + self.board.bottom + list(self.selected_cards))
 
 
         logger.debug(f"get_actions called - num_cards: {num_cards}, selected_cards: {self.selected_cards}, board: {self.board}, placement_mode: {placement_mode}")
@@ -724,7 +728,7 @@ class CFRAgent:
                     return False
         return True
 
-    def get_move(self, game_state, timeout_event, result):  # убрали num_cards
+    def get_move(self, game_state, timeout_event, result):
         logger.debug("Inside get_move")
         actions = game_state.get_actions()
         logger.debug(f"Available actions: {actions}")
@@ -1135,11 +1139,11 @@ class CFRAgent:
                 'iterations': self.iterations,
                 'stop_threshold': self.stop_threshold
             }
-            utils.save_ai_progress(data, 'cfr_data.pkl') # ИСПРАВЛЕНО
+            utils.save_ai_progress(data, 'cfr_data.pkl')
 
 
         def load_progress(self):
-            data = utils.load_ai_progress('cfr_data.pkl') # ИСПРАВЛЕНО
+            data = utils.load_ai_progress('cfr_data.pkl')
             if data:
                 self.nodes = data['nodes']
                 self.iterations = data['iterations']

@@ -11,7 +11,7 @@ import logging
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -172,7 +172,8 @@ def update_state():
             if key in game_state:
                 if key == 'discarded_cards':
                     session['game_state'][key] = [
-                        card for card in game_state[key]
+                        Card.from_dict(card) if isinstance(card, dict) else None # ИСПРАВЛЕНО!
+                        for card in game_state[key]
                     ]
                 else:
                     session['game_state'][key] = [
@@ -266,7 +267,7 @@ def ai_move():
         game_state = ai_engine.GameState(
             selected_cards=selected_cards,
             board=board,
-            discarded_cards=discarded_cards_data,  # Передаём как есть (список словарей)
+            discarded_cards=[card.to_dict() for card in discarded_cards],  # Передаем список словарей!
             ai_settings=ai_settings,
             deck=ai_engine.Card.get_all_cards()
         )
@@ -317,10 +318,10 @@ def ai_move():
                 logger.error("Ошибка: MCCFR агент не инициализирован")
                 return jsonify({'error': 'MCCFR agent not initialized'}), 500
             ai_thread = Thread(target=cfr_agent.get_move,
-                             args=(game_state, timeout_event, result)) # убрали , num_cards
+                             args=(game_state, timeout_event, result))
         else:  # ai_type == 'random'
             ai_thread = Thread(target=random_agent.get_move,
-                             args=(game_state, timeout_event, result)) # убрали , num_cards
+                             args=(game_state, timeout_event, result))
 
         ai_thread.start()
         ai_thread.join(timeout=int(ai_settings.get('aiTime', 5)))

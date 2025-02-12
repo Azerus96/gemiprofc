@@ -260,7 +260,7 @@ def ai_move():
         game_state = ai_engine.GameState(
             selected_cards=selected_cards,
             board=board,
-            discarded_cards=[card.to_dict() for card in discarded_cards],  # ИСПРАВЛЕНО!
+            discarded_cards=[card.to_dict() for card in discarded_cards] if discarded_cards else [],  # ИСПРАВЛЕНО!
             ai_settings=ai_settings,
             deck=ai_engine.Card.get_all_cards()
         )

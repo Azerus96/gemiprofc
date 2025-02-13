@@ -169,26 +169,13 @@ class GameState:
         placement_mode = self.ai_settings.get('placementMode', 'standard')
 
         # Добавляем проверку на выбывшие карты
-        # ИСПРАВЛЕНО: selected_cards НЕ включаем в used_cards на первом ходу!
-        # ИСПРАВЛЕНО: преобразуем self.board.* в списки словарей
-        if sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom]) == 0:  # Первый ход
-            used_cards = set(
-                self.discarded_cards +
-                self.board.top +
-                self.board.middle +
-                self.board.bottom
+        # ИСПРАВЛЕНО: used_cards теперь вычисляется корректно
+        used_cards = set()
+        for line in [self.board.top, self.board.middle, self.board.bottom]:
+            used_cards.update([card for card in line if card is not None])  # Только карты на доске
+        used_cards.update(
+                self.discarded_cards
             )
-        else:
-            used_cards = set(
-                self.discarded_cards +
-                self.board.top +
-                self.board.middle +
-                self.board.bottom +
-                list(self.selected_cards)
-            )
-        logger.debug(f"get_actions called - num_cards: {num_cards}, selected_cards: {self.selected_cards}, board: {self.board}, placement_mode: {placement_mode}, used_cards: {used_cards}")
-        logger.debug(f"Тип discarded_cards: {type(self.discarded_cards)}, содержимое: {self.discarded_cards}") # ДОБАВЛЕНО
-        logger.debug(f"Тип self.discarded_cards[0] if self.discarded_cards else None: {type(self.discarded_cards[0]) if self.discarded_cards else None}, содержимое: {self.discarded_cards[0] if self.discarded_cards else None}") # ADDED LOG
 
         if num_cards > 0:
             try:
@@ -201,10 +188,6 @@ class GameState:
                             'bottom': list(p[3:5]),
                             'discarded': None  # Ничего не сбрасываем
                         }
-                        # Проверка на выбывшие карты
-                        # ИСПРАВЛЕНО: сравниваем словари, а не объекты Card
-                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom']):
-                            actions.append(action)
 
 
                 elif placement_mode == "standard":  # Стандартный ход (3 карты)
@@ -223,13 +206,7 @@ class GameState:
                                             'bottom': remaining_cards[top_count + middle_count:],
                                             'discarded': self.selected_cards.cards[discarded_index]
                                         }
-                                        # Проверка на выбывшие карты
-                                        logger.debug(f"Перед проверкой used_cards - used_cards type: {type(used_cards)}, used_cards: {used_cards}") # ADDED LOG
-                                        logger.debug(f"Перед проверкой used_cards - action type: {type(action)}, action: {action}") # ADDED LOG
-                                        for card_check in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else []): # ADDED LOOP
-                                            logger.debug(f"Тип card в action: {type(card_check)}, содержимое: {card_check}") # ADDED LOOP
-                                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
-                                            actions.append(action)
+                                        actions.append(action)
 
                     else: # Обычный ход (не последний)
                         # Размещаем 2 карты, 1 сбрасываем
@@ -245,13 +222,7 @@ class GameState:
                                             'bottom': remaining_cards[top_count + middle_count:],
                                             'discarded': self.selected_cards.cards[discarded_index]
                                         }
-                                        # Проверка на выбывшие карты
-                                        logger.debug(f"Перед проверкой used_cards - used_cards type: {type(used_cards)}, used_cards: {used_cards}") # ADDED LOG
-                                        logger.debug(f"Перед проверкой used_cards - action type: {type(action)}, action: {action}") # ADDED LOG
-                                        for card_check in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else []): # ADDED LOOP
-                                            logger.debug(f"Тип card в action: {type(card_check)}, содержимое: {card_check}") # ADDED LOOP
-                                        if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom'] + ([action['discarded']] if action['discarded'] else [])):
-                                            actions.append(action)
+                                        actions.append(action)
 
                 elif placement_mode == "fantasy":
                     # ... (логика для фантазии) ...
@@ -315,9 +286,27 @@ class GameState:
                                     'bottom': remaining_cards[top_count + middle_count:],
                                     'discarded': None  # Ничего не сбрасываем
                                 }
-                                # Проверка на выбывшие карты
-                                if not any(card in used_cards for card in action['top'] + action['middle'] + action['bottom']):
-                                    actions.append(action)
+                                actions.append(action)
+
+        elif len(self.selected_cards) == 3: # Только если 3 карты выбрано
+            cards_to_place = list(self.selected_cards.cards) # Преобразуем в список для индексации
+            for i in range(3): # 3 варианта сброса
+                discard_card = cards_to_place[i]
+                remaining_cards = cards_to_place[:i] + cards_to_place[i+1:] # 2 оставшиеся карты
+
+                # Варианты размещения 2 карт по 3 линиям
+                for top_cards_count in range(3): # 0, 1, 2 карты в верхний ряд
+                    for middle_cards_count in range(3 - top_cards_count): # Остаток в средний, до 2
+                        bottom_cards_count = 2 - top_cards_count - middle_cards_count # В нижний все что осталось
+
+                        action = {
+                            'top': remaining_cards[:top_cards_count],
+                            'middle': remaining_cards[top_cards_count:top_cards_count + middle_cards_count],
+                            'bottom': remaining_cards[top_cards_count + middle_cards_count:],
+                            'discarded': discard_card
+                        }
+                        actions.append(action)
+
 
             except Exception as e:
                 logger.exception(f"Error in get_actions: {e}")

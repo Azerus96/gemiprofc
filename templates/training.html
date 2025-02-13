@@ -444,7 +444,7 @@
             <div class="selector-item" data-suit="♥">♥</div>
             <div class="selector-item" data-suit="♦">♦</div>
             <div class="selector-item" data-suit="♣">♣</div>
-            <div class="selector-item" data-suit="♠</div>
+            <div class="selector-item" data-suit="♠">♠</div>
             <button class="selector-item action-button" onclick="removeSelectedCards()">-</button>
         </div>
     </div>
@@ -501,18 +501,20 @@
             }
 
             card.addEventListener('dblclick', () => {
-                const cardKey = `${cardData.rank}${cardData.suit}`;
-                if (unavailableCards.has(cardKey) && card.parentNode.classList.contains('combination-slot')) {
-                    unavailableCards.delete(cardKey);
-                    document.querySelectorAll('.selector-item').forEach(item => {
-                        if (item.dataset.rank === cardData.rank) {
-                            item.classList.remove('unavailable');
-                        }
-                        if (item.dataset.suit === cardData.suit) {
-                            item.classList.remove('unavailable');
-                        }
+                const combinationArea = document.getElementById('combination-area');
+                const card = combinationArea.querySelectorAll('.card')[index];
+                if (card) {
+                    const cardDetails = { rank: card.dataset.rank, suit: card.dataset.suit };
+                    // Добавляем в removed_cards
+                    fetch('/update_state', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            removed_cards: [cardDetails],
+                        })
+                    }).then(response => {
+                        resetCombinationArea(); // Просто очищаем область комбинации
                     });
-                    card.remove();
                 }
             });
 
@@ -560,11 +562,13 @@
         function resetCombinationArea() {
             const combinationArea = document.getElementById('combination-area');
             combinationArea.innerHTML = '';
+            unavailableCards.clear(); // Очищаем unavailableCards при сбросе области
 
             // Создаем 17 слотов для комбинаций
             for (let i = 0; i < 17; i++) {
                 const slot = document.createElement('div');
                 slot.className = 'combination-slot';
+                slot.classList.remove('taken'); // Убедимся, что слоты не помечены как taken
                 slot.addEventListener('dragover', (e) => e.preventDefault());
                 slot.addEventListener('drop', handleCombinationSlotDrop);
                 combinationArea.appendChild(slot);
@@ -828,43 +832,50 @@
         console.log("removeSelectedCards() - Начало");
         const combinationArea = document.getElementById('combination-area');
         const removedCards = [];
+        let slotsChanged = false; // Флаг, были ли удалены карты
 
-        combinationArea.querySelectorAll('.card').forEach(card => {
+        combinationArea.querySelectorAll('.combination-slot.taken').forEach(slot => { // Ищем только занятые слоты
+            const card = slot.querySelector('.card');
             const cardKey = `${card.dataset.rank}${card.dataset.suit}`;
             if (!isCardOnBoard({rank: card.dataset.rank, suit: card.dataset.suit})) {
                 unavailableCards.delete(cardKey);
                 removedCards.push({ rank: card.dataset.rank, suit: card.dataset.suit });
             }
-            card.parentElement.classList.remove('taken');
+            slot.classList.remove('taken'); // Слот теперь свободен
             card.remove();
+            slotsChanged = True; // Отмечаем, что слоты изменились
         });
 
-        // Отправляем информацию об удаленных картах на сервер
-        fetch('/update_state', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ...getGameStateFromDOM(),
-                removed_cards: removedCards, // Добавляем удаленные карты
-                ai_settings: getAiSettings()
+        if (slotsChanged && removedCards.length > 0) { // Отправляем на сервер, только если были удалены карты
+            // Отправляем информацию об удаленных картах на сервер
+            fetch('/update_state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...getGameStateFromDOM(),
+                    removed_cards: removedCards, // Добавляем удаленные карты
+                    ai_settings: getAiSettings()
+                })
             })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-          if (data.error) {
-            console.error("Ошибка при обновлении состояния:", data.error);
-            alert("Ошибка при обновлении состояния: " + data.error);
-          } else {
-            console.log("removeSelectedCards() - Сервер: состояние обновлено, удаленные карты:", removedCards);
-          }
-        })
-        .catch(error => {
-            console.error('removeSelectedCards() - Ошибка при обновлении состояния:', error);
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+              if (data.error) {
+                console.error("Ошибка при обновлении состояния:", data.error);
+                alert("Ошибка при обновлении состояния: " + data.error);
+              } else {
+                console.log("removeSelectedCards() - Сервер: состояние обновлено, удаленные карты:", removedCards);
+              }
+            })
+            .catch(error => {
+                console.error('removeSelectedCards() - Ошибка при обновлении состояния:', error);
+            });
+        } else {
+            console.log("removeSelectedCards() - Карты не выбраны для удаления или нечего удалять.");
         });
 
          console.log("removeSelectedCards() - Конец. Карты удалены из комбинации.");
@@ -1025,7 +1036,7 @@
                 ai_settings: aiSettings
             })
         })
-        .then(response => {
+    .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

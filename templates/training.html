@@ -444,7 +444,7 @@
             <div class="selector-item" data-suit="♥">♥</div>
             <div class="selector-item" data-suit="♦">♦</div>
             <div class="selector-item" data-suit="♣">♣</div>
-            <div class="selector-item" data-suit="♠">♠</div>
+            <div class="selector-item" data-suit="♠</div>
             <button class="selector-item action-button" onclick="removeSelectedCards()">-</button>
         </div>
     </div>
@@ -1067,6 +1067,32 @@
             });
         });
     });
+
+        function handleDoubleClick(index) {
+            const combinationArea = document.getElementById('combination-area');
+            const card = combinationArea.querySelectorAll('.card')[index];
+            if (card) {
+                const cardDetails = { rank: card.dataset.rank, suit: card.dataset.suit };
+                // Добавляем в removed_cards
+                fetch('/update_state', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        removed_cards: [cardDetails],
+                    })
+                }).then(response => {
+                    resetCombinationArea(); // Просто очищаем область комбинации
+                });
+            }
+        }
+
+
+        function updateUI() {
+            document.querySelectorAll('.slot').forEach((slot, i) => {
+                slot.style.order = i; // Сбрасываем порядок
+                if (!slot.children.length) slot.style.display = 'flex'; // Показываем пустые слоты
+            });
+        }
 </script>
 </body>
 </html>

@@ -351,8 +351,8 @@ def ai_move():
         if move is None or 'error' in move:
             logger.error(f"Ошибка хода AI: {move.get('error', 'Unknown error')}")
             return jsonify({'error': move.get('error', 'Unknown error')}), 500
-
-        logger.debug(f"Получен ход AI: {move}")
+        else: # Исправленный отступ здесь!
+            logger.debug(f"Получен ход AI: {move}")
 
     except Exception as e:
         logger.exception("Исключение при выполнении хода AI:")

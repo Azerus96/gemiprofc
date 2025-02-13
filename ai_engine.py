@@ -197,38 +197,34 @@ class GameState:
                         pass # Для последнего хода пока не генерируем доп. действий, оставляем как есть
 
                     else:  # Обычный ход (не последний)
-                        if len(self.selected_cards) == 3: # Только если 3 карты выбрано
-                            cards_to_place = list(self.selected_cards.cards) # Преобразуем в список для индексации
-                            for i in range(3): # 3 варианта сброса
-                                discard_card = cards_to_place[i]
-                                remaining_cards = cards_to_place[:i] + cards_to_place[i+1:] # 2 оставшиеся карты
-
-                                # Варианты размещения 2 карт по 3 линиям
-                                for top_cards_count in range(3): # 0, 1, 2 карты в верхний ряд
-                                    for middle_cards_count in range(3 - top_cards_count): # Остаток в средний, до 2
-                                        bottom_cards_count = 2 - top_cards_count - middle_cards_count # В нижний все что осталось
-
+                        # Размещаем 2 карты, 1 сбрасываем
+                        for discarded_index in range(3):
+                            remaining_cards = [card for i, card in enumerate(self.selected_cards.cards) if i != discarded_index]
+                            for top_count in range(min(len(remaining_cards) + 1, 3 - len(self.board.top))):
+                                for middle_count in range(min(len(remaining_cards) - top_count + 1, 5 - len(self.board.middle))):
+                                    bottom_count = len(remaining_cards) - top_count - middle_count
+                                    if bottom_count <= (5 - len(self.board.bottom)):
                                         action = {
-                                            'top': remaining_cards[:top_cards_count],
-                                            'middle': remaining_cards[top_cards_count:top_cards_count + middle_cards_count],
-                                            'bottom': remaining_cards[top_cards_count + middle_cards_count:],
-                                            'discarded': discard_card
+                                            'top': remaining_cards[:top_count],
+                                            'middle': remaining_cards[top_count:top_count + middle_count],
+                                            'bottom': remaining_cards[top_count + middle_count:],
+                                            'discarded': self.selected_cards.cards[discarded_index]
                                         }
                                         actions.append(action)
 
                 elif placement_mode == "fantasy": # Режим Фантазия (без изменений)
-                                elif placement_mode == "fantasy": # Режим Фантазия (без изменений)
                     if self.ai_settings.get('fantasyMode'): # Фантазия повторно
                         valid_fantasy_repeats = [] # Валидные повторы фантазии
                         for p in itertools.permutations(self.selected_cards.cards): # Перебор перестановок
-                            action = { # Действие для фантазии  <- Corrected line - removed extra '{'
+                            action = { # Действие для фантазии
+                                {
                                     'top': list(p[:3]),
                                     'middle': list(p[3:8]),
                                     'bottom': list(p[8:13]),
                                     'discarded': list(p[13:])  # Всегда сбрасываем одну карту
                                 }
-                            if self.is_valid_fantasy_repeat(action): # Line 230 - now syntactically correct
-                                valid_fantasy_repeats.append(action)
+                                if self.is_valid_fantasy_repeat(action):
+                                    valid_fantasy_repeats.append(action)
                         if valid_fantasy_repeats:
                             actions = sorted(valid_fantasy_repeats, key=lambda a: self.calculate_action_royalty(a), reverse=True)
                         else:  # Если повтор фантазии невозможен

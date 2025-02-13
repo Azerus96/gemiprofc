@@ -390,7 +390,7 @@ def ai_move():
             if 'discarded' in move and move['discarded']:
                 if isinstance(move['discarded'], list):
                      session['game_state']['discarded_cards'].extend(move['discarded'])
-                 else:
+                else:
                     session['game_state']['discarded_cards'].append(move['discarded'])
 
             logger.debug(f"Обновленная доска в сессии (после хода): {session['game_state']['board']}")

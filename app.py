@@ -189,10 +189,14 @@ def update_state():
 
         # Добавляем карты, удаленные через "-", в discarded_cards
         if 'removed_cards' in game_state:  # 'removed_cards' приходит из frontend
-            removed_cards = [Card.from_dict(card) for card in game_state['removed_cards']]
-            session['game_state']['discarded_cards'].extend([card.to_dict() for card in removed_cards]) #Сохраняем в виде словаря
+            removed_cards = [Card.from_dict(card) if isinstance(card, dict) else card for card in game_state['removed_cards']]
+            session['game_state']['discarded_cards'].extend([card.to_dict() for card in removed_cards])
             logger.debug(f"removed_cards добавлены в discarded_cards сессии: {session['game_state']['discarded_cards']}")
 
+            session['game_state']['selected_cards'] = [
+                card for card in session['game_state']['selected_cards']
+                if card.to_dict() not in [removed_card.to_dict() for removed_card in game_state['removed_cards']]
+            ]
         if 'ai_settings' in game_state:
             session['game_state']['ai_settings'] = game_state['ai_settings']
 
@@ -386,7 +390,7 @@ def ai_move():
             if 'discarded' in move and move['discarded']:
                 if isinstance(move['discarded'], list):
                      session['game_state']['discarded_cards'].extend(move['discarded'])
-                else:
+                 else:
                     session['game_state']['discarded_cards'].append(move['discarded'])
 
             logger.debug(f"Обновленная доска в сессии (после хода): {session['game_state']['board']}")

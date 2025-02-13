@@ -224,6 +224,26 @@ class GameState:
                                         }
                                         actions.append(action)
 
+                        if len(self.selected_cards) == 3: # Только если 3 карты выбрано
+                            cards_to_place = list(self.selected_cards.cards) # Преобразуем в список для индексации
+                            for i in range(3): # 3 варианта сброса
+                                discard_card = cards_to_place[i]
+                                remaining_cards = cards_to_place[:i] + cards_to_place[i+1:] # 2 оставшиеся карты
+
+                                # Варианты размещения 2 карт по 3 линиям
+                                for top_cards_count in range(3): # 0, 1, 2 карты в верхний ряд
+                                    for middle_cards_count in range(3 - top_cards_count): # Остаток в средний, до 2
+                                        bottom_cards_count = 2 - top_cards_count - middle_cards_count # В нижний все что осталось
+
+                                        action = {
+                                            'top': remaining_cards[:top_cards_count],
+                                            'middle': remaining_cards[top_cards_count:top_cards_count + middle_cards_count],
+                                            'bottom': remaining_cards[top_cards_count + middle_cards_count:],
+                                            'discarded': discard_card
+                                        }
+                                        actions.append(action)
+
+
                 elif placement_mode == "fantasy":
                     # ... (логика для фантазии) ...
                     if self.ai_settings.get('fantasyMode'):
@@ -282,30 +302,11 @@ class GameState:
                             if bottom_count <= (5 - len(self.board.bottom)):
                                 action = {
                                     'top': remaining_cards[:top_count],
-                                    'middle': remaining_cards[top_count:top_count + middle_count],
-                                    'bottom': remaining_cards[top_count + middle_count:],
+                                    'middle': remaining_cards[top_count:top_count + middle_cards_count],
+                                    'bottom': remaining_cards[top_count + middle_cards_count:],
                                     'discarded': None  # Ничего не сбрасываем
                                 }
                                 actions.append(action)
-
-        elif len(self.selected_cards) == 3: # Только если 3 карты выбрано
-            cards_to_place = list(self.selected_cards.cards) # Преобразуем в список для индексации
-            for i in range(3): # 3 варианта сброса
-                discard_card = cards_to_place[i]
-                remaining_cards = cards_to_place[:i] + cards_to_place[i+1:] # 2 оставшиеся карты
-
-                # Варианты размещения 2 карт по 3 линиям
-                for top_cards_count in range(3): # 0, 1, 2 карты в верхний ряд
-                    for middle_cards_count in range(3 - top_cards_count): # Остаток в средний, до 2
-                        bottom_cards_count = 2 - top_cards_count - middle_cards_count # В нижний все что осталось
-
-                        action = {
-                            'top': remaining_cards[:top_cards_count],
-                            'middle': remaining_cards[top_cards_count:top_cards_count + middle_cards_count],
-                            'bottom': remaining_cards[top_cards_count + middle_cards_count:],
-                            'discarded': discard_card
-                        }
-                        actions.append(action)
 
 
             except Exception as e:
@@ -345,9 +346,9 @@ class GameState:
         top_rank, _ = temp_state.evaluate_hand(new_board.top)
         bottom_rank, _ = temp_state.evaluate_hand(new_board.bottom)
 
-        if top_rank == 7:  # Set in top row
+        if top_rank == 7: # Set in top row
             return True
-        if bottom_rank <= 3:  # Four of a Kind or better in bottom row
+        if bottom_rank <= 3: # Four of a Kind or better in bottom row
             return True
 
         return False

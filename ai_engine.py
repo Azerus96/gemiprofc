@@ -227,7 +227,7 @@ class GameState:
                                     'bottom': list(p[8:13]),
                                     'discarded': list(p[13:])  # Всегда сбрасываем одну карту
                                 }
-                                if self.is_valid_fantasy_repeat(action):
+                        if self.is_valid_fantasy_repeat(action):
                                     valid_fantasy_repeats.append(action)
                         if valid_fantasy_repeats:
                             actions = sorted(valid_fantasy_repeats, key=lambda a: self.calculate_action_royalty(a), reverse=True)

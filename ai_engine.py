@@ -217,18 +217,18 @@ class GameState:
                                         actions.append(action)
 
                 elif placement_mode == "fantasy": # Режим Фантазия (без изменений)
+                                elif placement_mode == "fantasy": # Режим Фантазия (без изменений)
                     if self.ai_settings.get('fantasyMode'): # Фантазия повторно
                         valid_fantasy_repeats = [] # Валидные повторы фантазии
                         for p in itertools.permutations(self.selected_cards.cards): # Перебор перестановок
-                            action = { # Действие для фантазии
-                                {
+                            action = { # Действие для фантазии  <- Corrected line - removed extra '{'
                                     'top': list(p[:3]),
                                     'middle': list(p[3:8]),
                                     'bottom': list(p[8:13]),
                                     'discarded': list(p[13:])  # Всегда сбрасываем одну карту
                                 }
-                        if self.is_valid_fantasy_repeat(action):
-                                    valid_fantasy_repeats.append(action)
+                            if self.is_valid_fantasy_repeat(action): # Line 230 - now syntactically correct
+                                valid_fantasy_repeats.append(action)
                         if valid_fantasy_repeats:
                             actions = sorted(valid_fantasy_repeats, key=lambda a: self.calculate_action_royalty(a), reverse=True)
                         else:  # Если повтор фантазии невозможен

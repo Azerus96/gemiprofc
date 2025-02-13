@@ -188,42 +188,15 @@ class GameState:
                             'bottom': list(p[3:5]),
                             'discarded': None  # Ничего не сбрасываем
                         }
+                        actions.append(action) # Просто добавляем все перестановки, AI сам выберет лучшую
 
 
                 elif placement_mode == "standard":  # Стандартный ход (3 карты)
                     placed_cards = sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom])
                     if placed_cards == 11:  # Последний ход
-                        # Размещаем 2 карты, 1 сбрасываем
-                        for discarded_index in range(3):
-                            remaining_cards = [card for i, card in enumerate(self.selected_cards.cards) if i != discarded_index]
-                            for top_count in range(min(len(remaining_cards) + 1, 3 - len(self.board.top))):
-                                for middle_count in range(min(len(remaining_cards) - top_count + 1, 5 - len(self.board.middle))):
-                                    bottom_count = len(remaining_cards) - top_count - middle_count
-                                    if bottom_count <= (5 - len(self.board.bottom)):
-                                        action = {
-                                            'top': remaining_cards[:top_count],
-                                            'middle': remaining_cards[top_count:top_count + middle_count],
-                                            'bottom': remaining_cards[top_count + middle_count:],
-                                            'discarded': self.selected_cards.cards[discarded_index]
-                                        }
-                                        actions.append(action)
+                        pass # Для последнего хода пока не генерируем доп. действий, оставляем как есть
 
-                    else: # Обычный ход (не последний)
-                        # Размещаем 2 карты, 1 сбрасываем
-                        for discarded_index in range(3):
-                            remaining_cards = [card for i, card in enumerate(self.selected_cards.cards) if i != discarded_index]
-                            for top_count in range(min(len(remaining_cards) + 1, 3 - len(self.board.top))):
-                                for middle_count in range(min(len(remaining_cards) - top_count + 1, 5 - len(self.board.middle))):
-                                    bottom_count = len(remaining_cards) - top_count - middle_count
-                                    if bottom_count <= (5 - len(self.board.bottom)):
-                                        action = {
-                                            'top': remaining_cards[:top_count],
-                                            'middle': remaining_cards[top_count:top_count + middle_count],
-                                            'bottom': remaining_cards[top_count + middle_count:],
-                                            'discarded': self.selected_cards.cards[discarded_index]
-                                        }
-                                        actions.append(action)
-
+                    else:  # Обычный ход (не последний)
                         if len(self.selected_cards) == 3: # Только если 3 карты выбрано
                             cards_to_place = list(self.selected_cards.cards) # Преобразуем в список для индексации
                             for i in range(3): # 3 варианта сброса
@@ -243,20 +216,19 @@ class GameState:
                                         }
                                         actions.append(action)
 
-
-                elif placement_mode == "fantasy":
-                    # ... (логика для фантазии) ...
-                    if self.ai_settings.get('fantasyMode'):
-                        valid_fantasy_repeats = []
-                        for p in itertools.permutations(self.selected_cards.cards):
-                            action = {
-                                'top': list(p[:3]),
-                                'middle': list(p[3:8]),
-                                'bottom': list(p[8:13]),
-                                'discarded': list(p[13:])  # Всегда сбрасываем одну карту
-                            }
-                            if self.is_valid_fantasy_repeat(action):
-                                valid_fantasy_repeats.append(action)
+                elif placement_mode == "fantasy": # Режим Фантазия (без изменений)
+                    if self.ai_settings.get('fantasyMode'): # Фантазия повторно
+                        valid_fantasy_repeats = [] # Валидные повторы фантазии
+                        for p in itertools.permutations(self.selected_cards.cards): # Перебор перестановок
+                            action = { # Действие для фантазии
+                                {
+                                    'top': list(p[:3]),
+                                    'middle': list(p[3:8]),
+                                    'bottom': list(p[8:13]),
+                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                                }
+                                if self.is_valid_fantasy_repeat(action):
+                                    valid_fantasy_repeats.append(action)
                         if valid_fantasy_repeats:
                             actions = sorted(valid_fantasy_repeats, key=lambda a: self.calculate_action_royalty(a), reverse=True)
                         else:  # Если повтор фантазии невозможен
@@ -269,30 +241,6 @@ class GameState:
                                 } for p in itertools.permutations(self.selected_cards.cards)
                             ], key=lambda a: self.calculate_action_royalty(a), reverse=True)
 
-                    else: # Если не в режиме фантазии, то проверяем можем ли войти
-                        valid_fantasy_entries = []
-                        for p in itertools.permutations(self.selected_cards.cards):
-                                action = {
-                                    'top': list(p[:3]),
-                                    'middle': list(p[3:8]),
-                                    'bottom': list(p[8:13]),
-                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
-                                }
-                                if self.is_valid_fantasy_entry(action):
-                                    valid_fantasy_entries.append(action)
-
-                        if valid_fantasy_entries: # Если можем войти в фантазию, предлагаем эти варианты
-                            actions = valid_fantasy_entries
-                        else: # Не можем войти в фантазию
-                            actions = [
-                                {
-                                    'top': list(p[:3]),
-                                    'middle': list(p[3:8]),
-                                    'bottom': list(p[8:13]),
-                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
-                                } for p in itertools.permutations(self.selected_cards.cards)
-                            ]
-
                 elif placement_mode == "free":  # Свободный режим
                     # Размещаем *все* выбранные карты, если возможно
                     remaining_cards = list(self.selected_cards.cards)
@@ -302,8 +250,8 @@ class GameState:
                             if bottom_count <= (5 - len(self.board.bottom)):
                                 action = {
                                     'top': remaining_cards[:top_count],
-                                    'middle': remaining_cards[top_count:top_count + middle_cards_count],
-                                    'bottom': remaining_cards[top_count + middle_cards_count:],
+                                    'middle': remaining_cards[top_cards_count:top_cards_count + middle_cards_count],
+                                    'bottom': remaining_cards[top_cards_count + middle_cards_count:],
                                     'discarded': None  # Ничего не сбрасываем
                                 }
                                 actions.append(action)

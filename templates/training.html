@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        /* ... (CSS стили - без изменений) ... */
+        /* ... (CSS стили - без изменений, я их опускаю для краткости) ... */
         body {
             margin: 0;
             padding: 20px;
@@ -503,8 +503,8 @@
 
             card.addEventListener('dblclick', () => {
                 const combinationArea = document.getElementById('combination-area');
-                const card = combinationArea.querySelectorAll('.card')[index];
-                if (card) {
+                // Исправлено: убрал const card = ... (дублирование)
+                if (card) { // Исправлено: убрал index, card и так известен
                     const cardDetails = { rank: card.dataset.rank, suit: card.dataset.suit };
                     // Добавляем в removed_cards
                     fetch('/update_state', {
@@ -539,7 +539,7 @@
 
             rows.forEach((row, index) => {
                 const rowElement = document.getElementById(`${row}-row`);
-                rowElement.innerHTML = '';
+                rowElement.innerHTML = ''; // Очищаем содержимое
                 for (let i = 0; i < numCards[index]; i++) {
                     const slot = document.createElement('div');
                     slot.className = 'card-slot';
@@ -562,7 +562,7 @@
 
         function resetCombinationArea() {
             const combinationArea = document.getElementById('combination-area');
-            combinationArea.innerHTML = '';
+            combinationArea.innerHTML = ''; // Очищаем
             unavailableCards.clear(); // Очищаем unavailableCards при сбросе области
 
             // Создаем 17 слотов для комбинаций
@@ -893,7 +893,7 @@
         document.querySelectorAll('.selector-item').forEach(el => el.classList.remove('selected', 'unavailable'));
         document.querySelectorAll('.card-slot').forEach(slot => {
             slot.classList.remove('taken');
-            const card = slot.querySelector('.card');
+            const card = slot.querySelector('.card'); // ищем карточку внутри слота
             if (card) {
                 card.remove();
             }
@@ -913,14 +913,14 @@
                 board: { top: [], middle: [], bottom: [] },
                 discarded_cards: [],
                 removed_cards: [],
-                ai_settings: {  //  Убрал placementMode
+                ai_settings: {
                     fantasyType: document.getElementById('fantasyType').value,
                     fantasyMode: document.getElementById('fantasyMode').checked,
                     aiTime: document.getElementById('aiTime').value,
                     iterations: document.getElementById('iterations').value,
                     stopThreshold: document.getElementById('stopThreshold').value,
                     aiType: document.getElementById('aiType').value,
-                    placementMode: 'standard'
+                    placementMode: 'standard'  // Добавлено, чтобы сбросить в standard
                 }
             })
         })
@@ -961,6 +961,7 @@
                 if (royaltyAnimation) {
                     royaltyAnimation.textContent = `+${royaltyValue}`;
                     royaltyAnimation.classList.remove('show');
+                    // requestAnimationFrame для более плавной анимации
                     requestAnimationFrame(() => {
                         royaltyAnimation.classList.add('show');
                     });
@@ -984,14 +985,14 @@
     function saveGameStateToSession() {
         console.log("saveGameStateToSession() - Начало");
         const gameState = getGameStateFromDOM();
-        const aiSettings = {
+        const aiSettings = { // Все настройки
             fantasyType: document.getElementById('fantasyType').value,
             fantasyMode: document.getElementById('fantasyMode').checked,
             aiTime: document.getElementById('aiTime').value,
             iterations: document.getElementById('iterations').value,
             stopThreshold: document.getElementById('stopThreshold').value,
             aiType: document.getElementById('aiType').value,
-            placementMode: 'standard'
+            placementMode: 'standard' // Сохраняем и placementMode
         };
 
         console.log("saveGameStateToSession() - Сохранение состояния:", { ...gameState, ai_settings: aiSettings });
@@ -999,7 +1000,7 @@
         fetch('/update_state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...gameState, ai_settings: aiSettings })
+            body: JSON.stringify({ ...gameState, ai_settings: aiSettings }) // Все данные
         })
         .then(response => {
             if (!response.ok) {
@@ -1030,11 +1031,11 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                selected_cards: [],
-                board: { top: [], middle: [], bottom: [] },
-                discarded_cards: [],
-                removed_cards: [],
-                ai_settings: aiSettings
+                selected_cards: [],  // Сбрасываем selected_cards
+                board: { top: [], middle: [], bottom: [] }, // Сбрасываем board
+                discarded_cards: [], // Сбрасываем discarded_cards
+                removed_cards: [],   // Сбрасываем removed_cards
+                ai_settings: aiSettings //ai_settings
             })
         })
     .then(response => {
@@ -1047,7 +1048,7 @@
             console.log("saveSettings() - Ответ сервера:", data);
             if (data.status === 'success') {
                 alert('Настройки сохранены!');
-                toggleMenu();
+                toggleMenu(); // Закрываем меню
             } else {
                 alert('Ошибка при сохранении настроек.');
             }
@@ -1080,7 +1081,7 @@
         });
     });
 
-        function handleDoubleClick(index) {
+    function handleDoubleClick(index) { //тут убрал
             const combinationArea = document.getElementById('combination-area');
             const card = combinationArea.querySelectorAll('.card')[index];
             if (card) {
@@ -1105,6 +1106,7 @@
                 if (!slot.children.length) slot.style.display = 'flex'; // Показываем пустые слоты
             });
         }
-</script>
+
+    </script>
 </body>
 </html>

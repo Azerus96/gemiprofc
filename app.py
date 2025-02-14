@@ -1,12 +1,12 @@
 from flask import Flask, render_template, jsonify, session, request
 import os
-import ai_engine
-from ai_engine import CFRAgent, RandomAgent, Card
-import utils
-import github_utils
+import ai_engine  #  Убедитесь, что ai_engine.py в той же директории
+from ai_engine import CFRAgent, RandomAgent, Card  #  Импортируем нужные классы
+import utils  #  Для load_ai_progress и save_ai_progress (локальное сохранение)
+import github_utils  #  Для взаимодействия с GitHub
 import time
 import json
-from threading import Thread, Event
+from threading import Thread, Event  #  Для асинхронной работы AI
 import logging
 
 # Настройка логирования
@@ -15,20 +15,21 @@ logging.basicConfig(level=logging.DEBUG,
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.urandom(24)  #  Секретный ключ для сессий Flask
 
 # Глобальные экземпляры AI
-cfr_agent = None  # Инициализируем, но создаем, только если нужен MCCFR
-random_agent = RandomAgent()
+cfr_agent = None  #  Инициализируем, но создаем, только если нужен MCCFR
+random_agent = RandomAgent()  #  Для случайных ходов
 
 def initialize_ai_agent(ai_settings):
+    """Инициализирует AI агента (CFR или Random) на основе настроек."""
     global cfr_agent
     logger.info(f"Инициализация AI агента с настройками: {ai_settings}")
     try:
-        iterations = int(ai_settings.get('iterations', 10000))  # Значение по умолчанию 10000
+        iterations = int(ai_settings.get('iterations', 10000))  # Значение по умолчанию
         stop_threshold = float(ai_settings.get('stopThreshold', 0.001))
     except ValueError as e:
-        logger.error(f"Неверные значения iterations или stopThreshold: {e}. Используются значения по умолчанию.")
+        logger.error(f"Неверные значения iterations или stopThreshold: {e}.  Используются значения по умолчанию.")
         iterations = 10000
         stop_threshold = 0.001
 
@@ -36,7 +37,7 @@ def initialize_ai_agent(ai_settings):
         cfr_agent = CFRAgent(iterations=iterations, stop_threshold=stop_threshold)
         logger.info(f"AI агент MCCFR инициализирован: {cfr_agent}")
 
-        if os.environ.get("AI_PROGRESS_TOKEN"):
+        if os.environ.get("AI_PROGRESS_TOKEN"):  #  Если задан токен GitHub
             try:
                 # Загрузка с GitHub
                 logger.info("Попытка загрузить прогресс AI с GitHub...")
@@ -62,28 +63,29 @@ def initialize_ai_agent(ai_settings):
 
 
 def serialize_card(card):
+    """Преобразует объект Card в словарь (для JSON)."""
     return card.to_dict() if card else None
 
-def serialize_move(move): # Убрал next_slots
+def serialize_move(move):
+    """Преобразует действие (move) в словарь (для JSON)."""
     logger.debug(f"Сериализация хода: {move}")
     serialized = {
         key: [serialize_card(card) for card in cards] if isinstance(cards, list) else serialize_card(cards)
         for key, cards in move.items()
     }
-    # next_slots больше не нужен, т.к. мы не передаем его в ответе
     logger.debug(f"Сериализованный ход: {serialized}")
     return serialized
 
-# next_available_slots больше не нужна, т.к. мы не передаем ее в ответе
-# def get_next_available_slots(board): ...
 
 @app.route('/')
 def home():
+    """Главная страница (не используется в данном приложении)."""
     logger.debug("Обработка запроса главной страницы")
-    return render_template('index.html')
+    return render_template('index.html')  #  Предполагается, что есть index.html
 
 @app.route('/training')
 def training():
+    """Страница тренировки."""
     logger.debug("Обработка запроса страницы тренировки")
 
     # Инициализация состояния сессии
@@ -102,15 +104,15 @@ def training():
             'iterations': '100000',
             'stopThreshold': '0.0001',
             'aiType': 'mccfr',
-            'placementMode': 'standard'
+            'placementMode': 'standard'  #  Убрал, т.к. это внутренняя логика
         }
     }
     logger.info(f"Инициализировано состояние игры: {session['game_state']}")
 
-    # Проверка необходимости реинициализации AI
+    # Проверка необходимости реинициализации AI (только если изменились настройки)
     if session.get('previous_ai_settings') != session['game_state']['ai_settings']:
         initialize_ai_agent(session['game_state']['ai_settings'])
-        session['previous_ai_settings'] = session['game_state']['ai_settings'].copy()
+        session['previous_ai_settings'] = session['game_state']['ai_settings'].copy()  #  Важно: копируем!
         logger.info(f"Реинициализирован AI агент с настройками: {session['game_state']['ai_settings']}")
 
     logger.info(f"Текущее состояние игры в сессии: {session['game_state']}")
@@ -118,6 +120,7 @@ def training():
 
 @app.route('/update_state', methods=['POST'])
 def update_state():
+    """Обновление состояния игры (вызывается из JavaScript)."""
     logger.debug("Обработка запроса обновления состояния - START")
     if not request.is_json:
         logger.error("Ошибка: Запрос не в формате JSON")
@@ -212,7 +215,7 @@ def ai_move():
 
     num_cards = len(game_state_data.get('selected_cards', []))
     ai_settings = game_state_data.get('ai_settings', {})
-    ai_type = ai_settings.get('aiType', 'mccfr')
+    ai_type = ai_settings.get('aiType', 'mccfr') #  'mccfr' по умолчанию
 
     try:
         # Обработка и валидация данных (используем .get() с значениями по умолчанию)
@@ -226,7 +229,6 @@ def ai_move():
             for card_data in line_data:
                 if card_data:  #  Проверяем, что card_data не None
                     board.place_card(line, Card.from_dict(card_data))
-
         logger.debug(f"Обработанная доска: {board}")
 
         # Создание состояния игры
@@ -252,7 +254,7 @@ def ai_move():
                 try:
                     cfr_agent.save_progress()
                     logger.info("Прогресс AI сохранен локально.")
-                    if github_utils.save_ai_progress_to_github():
+                    if github_utils.save_ai_progress_to_github():  # Попытка сохранить на GitHub
                         logger.info("Прогресс AI сохранен на GitHub.")
                     else:
                         logger.warning("Не удалось сохранить прогресс AI на GitHub.")
@@ -311,7 +313,7 @@ def ai_move():
     logger.debug(f"Отправка хода AI: {move}, Роялти: {royalties}, Всего роялти: {total_royalty}")
     logger.debug("Обработка запроса хода AI - END")
     return jsonify({
-        'move': serialize_move(move),  #  Убрал next_available_slots
+        'move': serialize_move(move),
         'royalties': royalties,
         'total_royalty': total_royalty
     }), 200

@@ -13,114 +13,112 @@
             background-color: #f0f0f0;
             overflow-x: hidden;
             min-height: 100vh;
-            padding-bottom: 150px; /* Add padding to bottom */
+            padding-bottom: 150px;
             box-sizing: border-box;
         }
 
-        /* Add some spacing between controls */
         .controls {
             display: flex;
             justify-content: center;
-            gap: 10px; /* Space out the buttons */
-            margin-bottom: 20px; /* Space below the controls */
+            gap: 10px;
+            margin-bottom: 20px;
             position: sticky;
             top: 0;
             z-index: 1001;
-            background: #f0f0f0; /* Match body background */
+            background: #f0f0f0;
             padding: 10px;
         }
 
         button {
-            padding: 12px 24px; /* Larger padding for bigger buttons */
+            padding: 12px 24px;
             font-size: 16px;
             border: none;
-            border-radius: 5px; /* Rounded corners */
+            border-radius: 5px;
             cursor: pointer;
-            background-color: #4CAF50; /* Green */
+            background-color: #4CAF50;
             color: white;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Subtle shadow */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         button:hover {
-            background-color: #45a049; /* Darker green on hover */
-            transform: translateY(-1px); /* Slightly lift the button */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Larger shadow on hover */
+            background-color: #45a049;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
         button:active {
-            transform: translateY(1px); /* Push the button down when clicked */
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2); /* Smaller shadow when clicked */
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
-        /* Style for the menu toggle button */
         .menu-toggle {
-            position: fixed; /* Fixed position on the viewport */
-            left: 10px; /* Position on the left */
+            position: fixed;
+            left: 10px;
             top: 20px;
-            z-index: 1003; /* Ensure it's above other content */
-            background: #4CAF50; /* Green */
+            z-index: 1003;
+            background: #4CAF50;
             border: none;
-            border-radius: 0 5px 5px 0; /* Rounded corners on the right side */
-            padding: 15px 10px; /* Vertical and horizontal padding */
+            border-radius: 0 5px 5px 0;
+            padding: 15px 10px;
             cursor: pointer;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1); /* Shadow on the right */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
 
-        /* Style for the menu panel */
         .menu-panel {
-            position: fixed; /* Fixed position */
-            left: -300px; /* Initially hidden off-screen */
+            position: fixed;
+            left: -300px;
             top: 0;
             bottom: 0;
             width: 300px;
             background: white;
-            z-index: 1002; /* Ensure it's above other content */
-            transition: left 0.3s ease; /* Smooth transition */
+            z-index: 1002;
+            transition: left 0.3s ease;
             padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1); /* Shadow on the right */
-            overflow-y: auto; /* Enable vertical scrolling if content overflows */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
         }
-        .menu-panel h3{
+
+        .menu-panel h3 {
             margin-left: 40px;
         }
 
-        /* Show the menu panel when it has the 'open' class */
         .menu-panel.open {
-            left: 0; /* Slide in from the left */
+            left: 0;
         }
 
         .setting-group {
-            margin-bottom: 20px; /* Space between setting groups */
+            margin-bottom: 20px;
         }
 
         .setting-group label {
-            display: block; /* Labels take full width */
-            margin-bottom: 10px; /* Space below labels */
+            display: block;
+            margin-bottom: 10px;
         }
 
-        /* Style for select, range, and checkbox inputs */
         .setting-group select,
         .setting-group input[type="range"],
         .setting-group input[type="checkbox"] {
-            width: 100%; /* Full width */
-            margin-bottom: 10px; /* Space below inputs */
+            width: 100%;
+            margin-bottom: 10px;
         }
-        .checkbox-container{
+
+        .checkbox-container {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        .checkbox-container input[type="checkbox"]{
+
+        .checkbox-container input[type="checkbox"] {
             width: auto;
         }
 	    .table {
             display: grid;
-            grid-template-rows: auto auto auto; /* Three rows */
-            gap: 20px; /* Space between rows */
-            margin: 20px auto; /* Center the table */
-            width: 95%; /* Responsive width */
-            max-width: 1200px; /* Maximum width */
+            grid-template-rows: auto auto auto;
+            gap: 20px;
+            margin: 20px auto;
+            width: 95%;
+            max-width: 1200px;
             background-color: #1a472a;
             padding: 20px;
             border-radius: 10px;
@@ -131,26 +129,26 @@
 
         .row {
             display: flex;
-            justify-content: center; /* Center cards horizontally */
-            gap: 2%; /* Space between card slots */
-            min-height: 120px; /* Minimum height for each row */
+            justify-content: center;
+            gap: 2%;
+            min-height: 120px;
             padding: 10px;
             border-radius: 5px;
-            background-color: rgba(255,255,255,0.1); /* Slightly transparent white */
+            background-color: rgba(255,255,255,0.1);
             flex-wrap: nowrap;
         }
 
         .card-slot {
-            width: calc(70px + 2vw); /* Responsive width */
-            height: calc(100px + 2vw); /* Responsive height */
+            width: calc(70px + 2vw);
+            height: calc(100px + 2vw);
             min-width: 50px;
             min-height: 70px;
-            border: 2px dashed rgba(255,255,255,0.3); /* Dashed border */
+            border: 2px dashed rgba(255,255,255,0.3);
             border-radius: 8px;
-            flex-shrink: 0; /* Prevent slots from shrinking */
-            display: flex; /* Use flexbox for centering */
-            justify-content: center; /* Center content horizontally */
-            align-items: center; /* Center content vertically */
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             transition: all 0.3s ease;
             position: relative;
         }
@@ -160,32 +158,30 @@
         }
 
         .card {
-            width: calc(70px + 2vw); /* Responsive width */
-            height: calc(100px + 2vw); /* Responsive height */
+            width: calc(70px + 2vw);
+            height: calc(100px + 2vw);
             min-width: 50px;
             min-height: 70px;
             border-radius: 8px;
             background-color: white;
-            display: flex; /* Use flexbox for centering */
-            justify-content: center; /* Center content horizontally */
-            align-items: center; /* Center content vertically */
-            font-size: calc(16px + 1vw); /* Responsive font size */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Subtle shadow */
-            position: absolute; /* Absolute positioning within the slot */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(16px + 1vw);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            position: absolute;
             top: 0;
             left: 0;
             cursor: pointer;
             user-select: none;
-            -webkit-user-select: none; /* For Safari */
+            -webkit-user-select: none;
             z-index: 2;
         }
 
-        /* Style for red suits */
         .card[data-suit="♥"], .card[data-suit="♦"] {
             color: #e44145;
         }
 
-        /* Style for black suits */
         .card[data-suit="♣"], .card[data-suit="♠"] {
             color: #2d2d2d;
         }
@@ -251,32 +247,32 @@
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin: 20px auto; /* Center the area */
-            flex-wrap: wrap; /* Allow wrapping of slots */
-            max-width: 1200px; /* Maximum width */
+            margin: 20px auto;
+            flex-wrap: wrap;
+            max-width: 1200px;
         }
 
         .combination-slot {
-            width: calc(70px + 1vw); /* Responsive width */
-            height: calc(100px + 1vw); /* Responsive height */
-            border: 2px dashed #ddd; /* Dashed border */
+            width: calc(70px + 1vw);
+            height: calc(100px + 1vw);
+            border: 2px dashed #ddd;
             border-radius: 8px;
-            display: flex; /* Use flexbox for centering */
-            justify-content: center; /* Center content horizontally */
-            align-items: center; /* Center content vertically */
+            display: flex;
+            justify-content: center;
+            align-items: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background-color: transparent; /* Transparent background */
+            background-color: transparent;
             position: relative;
         }
 
         .combination-slot:hover {
-            border-color: #4CAF50; /* Highlight border on hover */
+            border-color: #4CAF50;
         }
 
         .combination-slot.active {
-            border-color: #4CAF50; /* Highlight border when active */
-            background-color: rgba(76, 175, 80, 0.1); /* Light green background when active */
+            border-color: #4CAF50;
+            background-color: rgba(76,175,80,0.1);
         }
 
         .fullscreen-btn {
@@ -293,8 +289,8 @@
         }
 
         .selector-item.unavailable {
-            opacity: 0.5; /* Reduce opacity for unavailable items */
-            pointer-events: none; /* Disable pointer events */
+            opacity: 0.5;
+            pointer-events: none;
         }
 
         .royalty-animation {
@@ -315,51 +311,53 @@
 
         .royalty-animation.show {
             opacity: 1;
-            transform: translateY(-50%) scale(1); /* Scale up to normal size */
+            transform: translateY(-50%) scale(1);
         }
+
         .total-royalty {
-            margin-top: 10px; /* Space above the total royalty */
-            font-size: 18px; /* Larger font size */
-            color: gold; /* Gold color */
+            margin-top: 10px;
+            font-size: 18px;
+            color: gold;
         }
 
         @media (max-width: 768px) {
             body {
-                padding: 10px; /* Reduce padding on smaller screens */
+                padding: 10px;
             }
 
             .table {
-                width: 98%; /* More width on smaller screens */
-                padding: 10px; /* Reduce padding */
-                gap: 10px; /* Reduce gap */
+                width: 98%;
+                padding: 10px;
+                gap: 10px;
             }
 
             .row {
-                gap: 1.5%; /* Reduce gap between slots */
-                min-height: 80px; /* Reduce min height */
+                gap: 1.5%;
+                min-height: 80px;
             }
 
             .card, .card-slot {
-                width: calc(45px + 2vw); /* Smaller cards */
-                height: calc(65px + 2vw); /* Smaller cards */
-                font-size: calc(14px + 1vw); /* Smaller font size */
+                width: calc(45px + 2vw);
+                height: calc(65px + 2vw);
+                font-size: calc(14px + 1vw);
             }
 
             .card-controls {
-                padding: 10px; /* Reduce padding */
+                padding: 10px;
             }
 
             .selector-item, .action-button {
-                padding: 8px 12px; /* Smaller padding */
-                font-size: 14px; /* Smaller font size */
+                padding: 8px 12px;
+                font-size: 14px;
             }
-            .combination-slot{
-                width: calc(45px + 1vw); /* Smaller cards */
+
+            .combination-slot {
+                width: calc(45px + 1vw);
                 height: calc(65px + 1vw);
             }
 
             .menu-panel {
-                width: 250px; /* Narrower menu panel */
+                width: 250px;
             }
         }
     </style>
@@ -474,12 +472,11 @@
 
         //  Исправлено: Закрываем меню при клике вне его
         document.addEventListener('click', (e) => {
-          const menu = document.querySelector('.menu-panel');
-          const menuToggle = document.querySelector('.menu-toggle');
-          //  Если меню открыто И клик был НЕ внутри меню И клик был НЕ по кнопке меню
-          if (menuOpen && !menu.contains(e.target) && !menuToggle.contains(e.target)) {
-            toggleMenu(); //  Закрываем меню
-          }
+            const menu = document.querySelector('.menu-panel');
+            const menuToggle = document.querySelector('.menu-toggle');
+            if (menuOpen && !menu.contains(e.target) && !menuToggle.contains(e.target)) {
+                toggleMenu();
+            }
         });
 
         function toggleFullScreen() {
@@ -494,74 +491,56 @@
             }
         }
 
-        //  Исправлено: createCard
-        function createCard(cardData) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.dataset.rank = cardData.rank;
-            card.dataset.suit = cardData.suit;
-            card.textContent = `${cardData.rank}${cardData.suit}`;
-            card.draggable = true; //  Карточки можно перетаскивать
+function createCard(cardData) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.rank = cardData.rank;
+    card.dataset.suit = cardData.suit;
+    card.textContent = `${cardData.rank}${cardData.suit}`;
 
-            //  Цвет масти
-            if (cardData.suit === '♥' || cardData.suit === '♦') {
-                card.style.color = '#e44145';
-            }
+    if (cardData.suit === '♥' || cardData.suit === '♦') {
+        card.style.color = '#e44145';
+    }
+    // Исправлено:  Убрал двойной обработчик на dblclick
+    // card.addEventListener('dblclick', () => { ... });
 
-            // Добавляем обработчик двойного клика для удаления из combination-area
-            card.addEventListener('dblclick', () => {
-                const cardKey = `${cardData.rank}${cardData.suit}`;
-                // Удаляем карту из unavailableCards, если она там есть, и если она находится в combination-area
-                if (unavailableCards.has(cardKey) && card.parentNode.classList.contains('combination-slot')) {
-                    unavailableCards.delete(cardKey);
-                    // Помечаем кнопки выбора ранга и масти как доступные (если они были заблокированы)
-                    document.querySelectorAll('.selector-item').forEach(item => {
-                        if (item.dataset.rank === cardData.rank || item.dataset.suit === cardData.suit) {
-                            item.classList.remove('unavailable');
-                        }
-                    });
-                    card.remove(); // Удаляем карту
-                }
-            });
+    card.draggable = true;
+    card.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', ''); //  Нужно для Firefox
+        e.dataTransfer.setData('card', JSON.stringify({ rank: card.dataset.rank, suit: card.dataset.suit }));
+        card.style.opacity = '0.5';
+    });
 
-            card.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', ''); //  Нужно для Firefox
-                e.dataTransfer.setData('card', JSON.stringify({ rank: card.dataset.rank, suit: card.dataset.suit }));
-                card.style.opacity = '0.5';
-            });
+    card.addEventListener('dragend', (e) => {
+        card.style.opacity = '1';
+    });
+    return card;
+}
 
-            card.addEventListener('dragend', (e) => {
-                card.style.opacity = '1';
-            });
 
-            return card;
+function setupTable() {
+    const rows = ['top', 'middle', 'bottom'];
+    const numCards = [3, 5, 5];
+
+    rows.forEach((row, index) => {
+        const rowElement = document.getElementById(`${row}-row`);
+        rowElement.innerHTML = ''; // Очищаем содержимое перед добавлением новых слотов
+        for (let i = 0; i < numCards[index]; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'card-slot';
+            slot.style.position = 'relative'; // Добавляем, чтобы royalty-animation работали
+            slot.addEventListener('dragover', (e) => e.preventDefault());
+            slot.addEventListener('drop', handleDrop); //  Убрал inline, добавил handleDrop
+
+            const royaltyAnimation = document.createElement('div'); // Добавляем div для анимации роялти
+            royaltyAnimation.classList.add('royalty-animation');
+            slot.appendChild(royaltyAnimation); // Добавляем его в слот
+
+            rowElement.appendChild(slot);
         }
+    });
+}
 
-
-        function setupTable() {
-            const rows = ['top', 'middle', 'bottom'];
-            const numCards = [3, 5, 5];
-
-            rows.forEach((row, index) => {
-                const rowElement = document.getElementById(`${row}-row`);
-                rowElement.innerHTML = ''; // Очищаем содержимое перед добавлением новых слотов
-                for (let i = 0; i < numCards[index]; i++) {
-                    const slot = document.createElement('div');
-                    slot.className = 'card-slot';
-                    slot.style.position = 'relative'; // Добавляем, чтобы royalty-animation работали
-                    slot.addEventListener('dragover', (e) => e.preventDefault());
-                    slot.addEventListener('drop', handleDrop); //  Убрал inline, добавил handleDrop
-
-                    const royaltyAnimation = document.createElement('div'); // Добавляем div для анимации роялти
-                    royaltyAnimation.classList.add('royalty-animation');
-                    slot.appendChild(royaltyAnimation); // Добавляем его в слот
-
-                    rowElement.appendChild(slot);
-                }
-            });
-        }
-
-        // Исправлено: resetCombinationArea
         function resetCombinationArea() {
             const combinationArea = document.getElementById('combination-area');
             combinationArea.innerHTML = ''; // Очищаем
@@ -593,14 +572,14 @@
         }
 
         function getGameStateFromDOM() {
-            //  console.log("getGameStateFromDOM() - Начало");
+            console.log("getGameStateFromDOM() - Начало");
 
-            //  Карты, размещенные в "combination-area" (выбранные, но еще не размещенные)
+            // Получаем только карты из слотов, помеченных как taken
             const selectedCards = Array.from(document.querySelectorAll('.combination-area .combination-slot.taken .card')).map(card => ({
                 rank: card.dataset.rank,
                 suit: card.dataset.suit
             }));
-            //  console.log("getGameStateFromDOM() - Выбранные карты из DOM:", selectedCards);
+            console.log("getGameStateFromDOM() - Выбранные карты из DOM:", selectedCards);
 
             const board = {
                 top: Array.from(document.querySelectorAll('#top-row .card-slot .card')).map(card =>
@@ -614,28 +593,22 @@
                 )
             };
 
-            //  console.log("getGameStateFromDOM() - Состояние доски из DOM:", board);
-
-            //  Карты, сброшенные в "discard-pile" (сейчас не используется, но может пригодиться)
-            // const discardedCards = Array.from(document.querySelectorAll('#discard-pile .card')).map(card => ({
-            //     rank: card.dataset.rank,
-            //     suit: card.dataset.suit
-            // }));
+            console.log("getGameStateFromDOM() - Состояние доски из DOM:", board);
 
             const discardedCards = Array.from(unavailableCards).map(cardKey => {
                 const [rank, suit] = cardKey.match(/([0-9JQKA]+)([♥♦♣♠])/).slice(1);
                 return { rank, suit };
             });
 
-            //  console.log("getGameStateFromDOM() - Конец. Возвращено состояние игры.");
+            console.log("getGameStateFromDOM() - Конец. Возвращено состояние игры.");
             return {
-                selected_cards: selectedCards, //  Карты, выбранные для размещения
-                board: board, //  Карты, уже размещенные на столе
-                discarded_cards: discardedCards //  Сброшенные карты
+                selected_cards: selectedCards,
+                board: board,
+                discarded_cards: discardedCards
             };
         }
 
-        //  Исправлено: placeCardsOnBoard
+
         function placeCardsOnBoard(moveData) {
             console.log("placeCardsOnBoard() - Начало. moveData:", moveData);
             const lines = ['top', 'middle', 'bottom'];
@@ -688,35 +661,29 @@
             console.log("placeCardsOnBoard() - Конец. Карты размещены на доске.");
         }
 
-    //  Исправлено: handleCardSelection
+    //  ИСПРАВЛЕНО: handleCardSelection
     function handleCardSelection(element) {
-        //  console.log("handleCardSelection() - Начало. element:", element);
         if (element.classList.contains('unavailable')) {
-            //  console.log("handleCardSelection() - Карта недоступна, выход.");
-            return;
+            return; //  Если карта недоступна, выходим
         }
 
         if (element.dataset.rank) {
             if (selectedRank === element.dataset.rank) {
                 selectedRank = null;
                 element.classList.remove('selected');
-                //  console.log("handleCardSelection() - Ранг отменен:", element.dataset.rank);
             } else {
                 document.querySelectorAll('[data-rank]').forEach(el => el.classList.remove('selected'));
                 selectedRank = element.dataset.rank;
                 element.classList.add('selected');
-                //  console.log("handleCardSelection() - Ранг выбран:", element.dataset.rank);
             }
         } else if (element.dataset.suit) {
             if (selectedSuit === element.dataset.suit) {
                 selectedSuit = null;
                 element.classList.remove('selected');
-                //  console.log("handleCardSelection() - Масть отменена:", element.dataset.suit);
             } else {
                 document.querySelectorAll('[data-suit]').forEach(el => el.classList.remove('selected'));
                 selectedSuit = element.dataset.suit;
                 element.classList.add('selected');
-                //  console.log("handleCardSelection() - Масть выбрана:", element.dataset.suit);
             }
         }
 
@@ -739,7 +706,6 @@
             }
           }
         }
-        //  console.log("handleCardSelection() - Конец.");
     }
 
       function getAiSettings() {
@@ -793,7 +759,7 @@
                 },
                 body: requestData
             })
-           .then(response => { //  Добавил .then
+           .then(response => {
                 console.log("distributeCards() - Ответ сервера статус:", response.status);
                 if (!response.ok) {
                     return response.text().then(text => { //  Добавил обработку текста ошибки
@@ -803,7 +769,7 @@
                 }
                 return response.json();
             })
-            .then(data => { //  Добавил then
+            .then(data => {
                 console.log("distributeCards() - Ответ сервера данные:", data);
                 if (data.error) {
                     alert(data.error); //  Показываем ошибку пользователю
@@ -829,7 +795,7 @@
                 gameState.selected_cards = []; //  Очищаем selected_cards
                 console.log("distributeCards() - selected_cards очищены.");
             })
-            .catch(error => { //  Добавил .catch
+            .catch(error => {
                 console.error('distributeCards() - Ошибка:', error);
                 alert('Произошла ошибка при получении хода ИИ.'); //  Показываем ошибку пользователю
             });
@@ -838,6 +804,7 @@
         }
         console.log("distributeCards() - Конец.");
     }
+
 
     //  ИСПРАВЛЕНО: removeSelectedCards
     function removeSelectedCards() {
@@ -888,17 +855,15 @@
             });
         } else {
             console.log("removeSelectedCards() - Карты не выбраны для удаления или нечего удалять.");
-        }
+        });
 
-        updateSelectorButtons(); //  Добавил вызов
-        console.log("removeSelectedCards() - Конец. Карты удалены из комбинации.");
+         console.log("removeSelectedCards() - Конец. Карты удалены из комбинации.");
     }
 
     function resetTraining() {
         console.log("resetTraining() - Начало");
         setupTable();
         resetCombinationArea();
-        updateSelectorButtons(); //  Добавил вызов
 
         unavailableCards.clear();
         selectedRank = null;
@@ -912,7 +877,7 @@
             }
         });
 
-        //  Очищаем анимации роялти
+        // Исправлено: очищаем анимации роялти
         document.querySelectorAll('.royalty-animation').forEach(el => {
             el.classList.remove('show');
             el.textContent = ''; // Очищаем текст
@@ -955,7 +920,6 @@
     function isCardOnBoard(card) {
         const board = getGameStateFromDOM().board;
         for (const line in board) {
-            //  Исправлено:  Проверяем, что card не null
             if (board[line].some(c => c && c.rank === card.rank && c.suit === card.suit)) {
                 return true;
             }
@@ -1074,36 +1038,31 @@
             alert('Произошла ошибка при сохранении настроек.');
         });
     }
-    // Добавлено: обработчик двойного клика для удаления карт из combination-area
+    // Исправлено: двойной клик
     function handleDoubleClick(cardData) {
-      const cardKey = `${cardData.rank}${cardData.suit}`;
-      //  Проверяем, есть ли карта в unavailableCards и находится ли она в combination-area
-      if (unavailableCards.has(cardKey) && cardData.source === 'combination')
-       {
-        unavailableCards.delete(cardKey); //  Удаляем карту из unavailableCards
-
-        //  Помечаем кнопки выбора ранга и масти как доступные (если они были заблокированы)
-        document.querySelectorAll('.selector-item').forEach(item => {
-          if (item.dataset.rank === cardData.rank || item.dataset.suit === cardData.suit) {
-            item.classList.remove('unavailable');
-          }
-        });
-
-        //  Удаляем карту из combination-area
-        document.querySelectorAll('.combination-slot .card').forEach(card => {
-          if (card.dataset.rank === cardData.rank && card.dataset.suit === cardData.suit) {
-            card.remove();
-            //  Больше не нужно, т.к. есть unavailableCards
-            // card.parentElement.classList.remove('taken');
-          }
-        });
-      }
+        const cardKey = `${cardData.rank}${cardData.suit}`;
+        if (unavailableCards.has(cardKey) && cardData.source === 'combination') {
+            unavailableCards.delete(cardKey);
+            document.querySelectorAll('.selector-item').forEach(item => {
+                if (item.dataset.rank === cardData.rank || item.dataset.suit === cardData.suit) {
+                    item.classList.remove('unavailable');
+                }
+            });
+            //  Удаляем карту из combination-area
+            document.querySelectorAll('.combination-slot .card').forEach(card => {
+                if (card.dataset.rank === cardData.rank && card.dataset.suit === cardData.suit) {
+                    card.remove();
+                    //  Больше не нужно, т.к. есть unavailableCards
+                    // card.parentElement.classList.remove('taken');
+                }
+            });
+        }
     }
+
 
     document.addEventListener('DOMContentLoaded', () => {
         setupTable();
         resetCombinationArea();
-        updateSelectorButtons(); //  Добавил вызов
 
         //  Восстанавливаем fullscreen из localStorage
         const savedFullscreen = localStorage.getItem('isFullscreen') === 'true';
@@ -1125,7 +1084,7 @@
         });
     });
 
-    //  Добавил updateUI (пустая функция, если не нужна)
+    // Исправлено: добавил updateUI (пустая функция, если не нужна)
     function updateUI() {
         //  Эта функция может использоваться для обновления интерфейса, если нужно
         //  Например, для сортировки карт или других визуальных изменений
@@ -1153,30 +1112,16 @@
             document.querySelectorAll('.selector-item').forEach(item => item.classList.remove('selected'));
             selectedRank = null;
             selectedSuit = null;
-            updateSelectorButtons();
         }
     }
-
-    function updateSelectorButtons(){
-        document.querySelectorAll('.selector-item').forEach(item => {
-            item.classList.remove('unavailable');
-        });
-        const board = getGameStateFromDOM().board;
-        for (const line in board){
-            board[line].forEach(cardData => {
-                if(cardData){
-                    document.querySelectorAll(`.selector-item[data-rank="${cardData.rank}"], .selector-item[data-suit="${cardData.suit}"]`).forEach(item => {
-                        item.classList.add('unavailable');
-                    });
-                }
-            });
+    // Добавлено: обработчик двойного клика для удаления из combination-area
+    document.getElementById('combination-area').addEventListener('dblclick', (e) => {
+    const card = e.target.closest('.card'); // Находим ближайшую карту
+        if (card) {
+            const cardData = { rank: card.dataset.rank, suit: card.dataset.suit, source: 'combination' };
+            handleDoubleClick(cardData); // вызываем handleDoubleClick
         }
-        document.querySelectorAll('.combination-area .card').forEach(card => {
-            document.querySelectorAll(`.selector-item[data-rank="${card.dataset.rank}"], .selector-item[data-suit="${card.dataset.suit}"]`).forEach(item => {
-                item.classList.add('unavailable');
-            });
-        });
-    }
+    });
 
     </script>
 </body>

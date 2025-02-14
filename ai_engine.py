@@ -174,21 +174,23 @@ class GameState:
             used_cards.update([card for card in line if card is not None])  # Только карты на доске
         used_cards.update(self.discarded_cards)
 
-
         if num_cards > 0:
             try:
                 if placement_mode == "first_deal":  # Первая раздача (5 карт)
                     # Размещаем все 5 карт
                     for p in itertools.permutations(self.selected_cards.cards):
-                        action = {
-                            'top': list(p[:3]),  #  ИСПРАВЛЕНО: 3 карты в top
-                            'middle': list(p[3:8]),  #  ИСПРАВЛЕНО: 5 карт в middle
-                            'bottom': list(p[8:13]), #  ИСПРАВЛЕНО: 5 карт в bottom
-                            'discarded': []  #  ИСПРАВЛЕНО: Ничего не сбрасываем, должен быть пустой список
-                        }
-                        #  ПРОВЕРКА:  Добавляем проверку на валидность расстановки
-                        if len(action['top']) <= 3 and len(action['middle']) <= 5 and len(action['bottom']) <=5 and len(action['top']) + len(action['middle']) + len(action['bottom']) == 5:
-                            actions.append(action)
+                        #  ИСПРАВЛЕНО:  Генерируем все возможные варианты размещения 5 карт
+                        for top_count in range(4):  #  От 0 до 3 карт в top
+                            for middle_count in range(6 - top_count):  #  От 0 до (5 - top_count) карт в middle
+                                bottom_count = 5 - top_count - middle_count  #  Остальные карты в bottom
+                                if bottom_count <= 5:
+                                        action = {
+                                            'top': list(p[:top_count]),
+                                            'middle': list(p[top_count:top_count + middle_count]),
+                                            'bottom': list(p[top_count + middle_count:]),
+                                            'discarded': []  # Ничего не сбрасываем
+                                        }
+                                        actions.append(action)
 
 
                 elif placement_mode == "standard":  # Стандартный ход (3 карты)
@@ -259,7 +261,7 @@ class GameState:
         logger.debug(f"Generated actions: {actions}")
         logger.debug("get_actions - END") # ADDED LOG
         return actions
-
+        
     def is_valid_fantasy_entry(self, action):
         """Checks if an action leads to a valid fantasy mode entry."""
         new_board = Board()

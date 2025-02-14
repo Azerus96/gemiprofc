@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        /* ... (CSS - без изменений) ... */
         body {
             margin: 0;
             padding: 20px;
@@ -661,10 +660,10 @@ function setupTable() {
             console.log("placeCardsOnBoard() - Конец. Карты размещены на доске.");
         }
 
-    //  ИСПРАВЛЕНО: handleCardSelection
+
     function handleCardSelection(element) {
         if (element.classList.contains('unavailable')) {
-            return; //  Если карта недоступна, выходим
+            return;  // Если карта недоступна, выходим
         }
 
         if (element.dataset.rank) {
@@ -811,17 +810,19 @@ function setupTable() {
         console.log("removeSelectedCards() - Начало");
         const combinationArea = document.getElementById('combination-area');
         const removedCards = [];
-        let slotsChanged = false; // Флаг
+        let slotsChanged = false;
 
+        //  ИСПРАВЛЕНО:  Удаляем карты *только* из combination-area
         combinationArea.querySelectorAll('.combination-slot.taken .card').forEach(slot => {
             const card = slot.querySelector('.card');
             const cardKey = `${card.dataset.rank}${card.dataset.suit}`;
+            //  Добавил проверку, что карта не на доске
             if (!isCardOnBoard({rank: card.dataset.rank, suit: card.dataset.suit})) {
                 unavailableCards.delete(cardKey);
                 removedCards.push({ rank: card.dataset.rank, suit: card.dataset.suit });
             }
             slot.classList.remove('taken'); // Слот теперь свободен
-            card.remove(); // Удаляем карту из слота
+            card.remove();
             slotsChanged = true;
         });
 
@@ -1059,44 +1060,44 @@ function setupTable() {
     });
 
     //  ИСПРАВЛЕНО: handleDoubleClick
-    function handleDoubleClick(event) {
-        const card = event.target.closest('.card'); //  Находим ближайшую карту
-        if (!card) return; //  Если клик не по карте, выходим
+function handleDoubleClick(event) {
+    const card = event.target.closest('.card');  // Находим ближайшую карту
+    if (!card) return; // Если клик не по карте, выходим
 
-        const cardData = { rank: card.dataset.rank, suit: card.dataset.suit };
-        const cardKey = `${cardData.rank}${cardData.suit}`;
+    const cardData = { rank: card.dataset.rank, suit: card.dataset.suit };
+    const cardKey = `${cardData.rank}${cardData.suit}`;
 
-        if (unavailableCards.has(cardKey) && card.parentNode.classList.contains('combination-slot')) {
-            unavailableCards.delete(cardKey); //  Удаляем из unavailableCards
-            //  Убираем класс 'taken' у слота
-            card.parentNode.classList.remove('taken');
-            //  Удаляем карту из DOM
-            card.remove();
+    if (unavailableCards.has(cardKey) && card.parentNode.classList.contains('combination-slot')) {
+        unavailableCards.delete(cardKey); // Удаляем из unavailableCards
+        //  Убираем класс 'taken' у слота
+        card.parentNode.classList.remove('taken');
+        //  Удаляем карту из DOM
+        card.remove();
 
-            //  Посылаем запрос на сервер, чтобы обновить состояние
-            fetch('/update_state', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    removed_cards: [cardData], //  Удаляем карту
-                    ...getGameStateFromDOM(), //  Передаем текущее состояние
-                    ai_settings: getAiSettings()
-                })
+        //  Посылаем запрос на сервер, чтобы обновить состояние
+        fetch('/update_state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                removed_cards: [cardData], //  Удаляем карту
+                ...getGameStateFromDOM(),  //  Передаем текущее состояние
+                ai_settings: getAiSettings()
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    console.error("Ошибка при обновлении состояния:", data.error);
-                    alert("Ошибка при обновлении состояния: " + data.error);
-                } else {
-                    console.log("Карта удалена двойным кликом, состояние обновлено.");
-                }
-            })
-            .catch(error => {
-                console.error("Ошибка при удалении карты двойным кликом:", error);
-            });
-        }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error("Ошибка при обновлении состояния:", data.error);
+                alert("Ошибка при обновлении состояния: " + data.error);
+            } else {
+                console.log("Карта удалена двойным кликом, состояние обновлено.");
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка при удалении карты двойным кликом:", error);
+        });
     }
+}
 
 
     // Добавлено: обработчик drop для слотов в таблице (чтобы можно было класть карты)
@@ -1121,7 +1122,7 @@ function setupTable() {
 
     //  Добавил addEventListener для combination-area, чтобы работал dblclick
     document.getElementById('combination-area').addEventListener('dblclick', (e) => {
-    const card = e.target.closest('.card'); //  Ищем ближайший .card
+    const card = e.target.closest('.card');  // Ищем ближайший .card
         if (card) {
             handleDoubleClick({ rank: card.dataset.rank, suit: card.dataset.suit, source: 'combination' });
         }

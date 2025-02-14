@@ -6,6 +6,7 @@ from threading import Event, Thread
 import time
 import math
 import logging
+from typing import List, Dict, Tuple, Optional, Union  #  Добавили List
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -637,7 +638,7 @@ class CFRAgent:
             actions = game_state.get_actions()
             if not actions:
                 logger.debug("No actions available for this state.")
-                return 0
+                return 0  #  Если нет действий, возвращаем 0
             self.nodes[info_set] = CFRNode(actions)
         node = self.nodes[info_set]
 
@@ -648,7 +649,7 @@ class CFRAgent:
         for a in node.actions:
             if timeout_event.is_set():
                 logger.info("CFR timed out during action loop!")
-                return 0
+                return 0  #  Если таймаут, возвращаем 0
 
             next_state = game_state.apply_action(a)
             if player == 0:
@@ -671,7 +672,8 @@ class CFRAgent:
         for i in range(self.iterations):
             if timeout_event.is_set():
                 logger.info(f"Training interrupted after {i} iterations due to timeout.")
-                break  # Exit the loop if timeout is
+                break  # Exit the loop if timeout is signaled
+
             all_cards = Card.get_all_cards()
             random.shuffle(all_cards)
             game_state = GameState(deck=all_cards) # Pass the shuffled deck to GameState

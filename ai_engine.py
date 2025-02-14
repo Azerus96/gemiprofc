@@ -1,7 +1,7 @@
 import random
 import itertools
 from collections import defaultdict, Counter
-import utils  #  Для save_ai_progress и load_ai_progress
+import utils  #  Предполагается, что здесь функции save_ai_progress и load_ai_progress
 from threading import Event, Thread
 import time
 import math
@@ -75,11 +75,11 @@ class Hand:
 
 class Board:
     def __init__(self):
-        self.top = []
-        self.middle = []
-        self.bottom = []
+        self.top: List[Card] = []
+        self.middle: List[Card] = []
+        self.bottom: List[Card] = []
 
-    def place_card(self, line, card):
+    def place_card(self, line: str, card: Card) -> None:
         if line == 'top':
             if len(self.top) >= 3:
                 raise ValueError("Top line is full")
@@ -95,18 +95,18 @@ class Board:
         else:
             raise ValueError(f"Invalid line: {line}. Line must be one of: 'top', 'middle', 'bottom'")
 
-    def is_full(self):
+    def is_full(self) -> bool:
         return len(self.top) == 3 and len(self.middle) == 5 and len(self.bottom) == 5
 
-    def clear(self):
+    def clear(self) -> None:
         self.top = []
         self.middle = []
         self.bottom = []
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Top: {self.top}\nMiddle: {self.middle}\nBottom: {self.bottom}"
 
-    def get_cards(self, line):
+    def get_cards(self, line: str) -> List[Card]:
         if line == 'top':
             return self.top
         elif line == 'middle':
@@ -118,27 +118,27 @@ class Board:
 
 class GameState:
     def __init__(self, selected_cards=None, board=None, discarded_cards=None, ai_settings=None, deck=None):
-        self.selected_cards = Hand(selected_cards) if selected_cards is not None else Hand()
-        self.board = board if board is not None else Board()
-        self.discarded_cards = discarded_cards if discarded_cards is not None else []
-        self.ai_settings = ai_settings if ai_settings is not None else {}
-        self.current_player = 0
-        self.deck = deck if deck is not None else self.create_deck() # Use provided deck or create a new one
-        self.rank_map = {rank: i for i, rank in enumerate(Card.RANKS)}
-        self.suit_map = {suit: i for i, suit in enumerate(Card.SUITS)}
+        self.selected_cards: Hand = Hand(selected_cards) if selected_cards is not None else Hand()
+        self.board: Board = board if board is not None else Board()
+        self.discarded_cards: List[Card] = discarded_cards if discarded_cards is not None else []
+        self.ai_settings: Dict = ai_settings if ai_settings is not None else {}
+        self.current_player: int = 0
+        self.deck: List[Card] = deck if deck is not None else self.create_deck() # Use provided deck or create a new one
+        self.rank_map: Dict[str, int] = {rank: i for i, rank in enumerate(Card.RANKS)}
+        self.suit_map: Dict[str, int] = {suit: i for i, suit in enumerate(Card.SUITS)}
 
-    def create_deck(self):
+    def create_deck(self) -> List[Card]:
         """Creates a standard deck of 52 cards."""
         return [Card(rank, suit) for rank in Card.RANKS for suit in Card.SUITS]
 
-    def get_current_player(self):
+    def get_current_player(self) -> int:
         return self.current_player
 
-    def is_terminal(self):
+    def is_terminal(self) -> bool:
         """Checks if the game is in a terminal state (all lines are full)."""
         return self.board.is_full()
 
-    def get_num_cards_to_draw(self):
+    def get_num_cards_to_draw(self) -> int:
         """Returns the number of cards to draw based on the current game state."""
         placed_cards = sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom])
         if placed_cards == 5:
@@ -146,11 +146,11 @@ class GameState:
         elif placed_cards == 7 or placed_cards == 10: # Combined conditions for 7 and 10 cards
             return 3
         elif placed_cards >= 13:
-            return 0
+            return 0  #  Или raise Exception("Game is over")
         else:
             return 0
 
-    def get_available_cards(self):
+    def get_available_cards(self) -> List[Card]:
         """Returns a list of cards that are still available in the deck."""
 
         used_cards = set(self.discarded_cards + self.board.top + self.board.middle + self.board.bottom + list(self.selected_cards))
@@ -172,8 +172,9 @@ class GameState:
         used_cards = set()
         for line in [self.board.top, self.board.middle, self.board.bottom]:
             used_cards.update([card for card in line if card is not None])  # Только карты на доске
-        used_cards.update(self.discarded_cards)
-
+        used_cards.update(
+                self.discarded_cards
+            )
 
         if num_cards > 0:
             try:
@@ -670,8 +671,7 @@ class CFRAgent:
         for i in range(self.iterations):
             if timeout_event.is_set():
                 logger.info(f"Training interrupted after {i} iterations due to timeout.")
-                break  # Exit the loop if timeout is signaled
-
+                break  # Exit the loop if timeout is
             all_cards = Card.get_all_cards()
             random.shuffle(all_cards)
             game_state = GameState(deck=all_cards) # Pass the shuffled deck to GameState
@@ -842,17 +842,17 @@ class CFRAgent:
                         return True
 
         # Special case for A, 2, 3, 4, 5 straight
-        if ranks == [0, 1, 2, 3]:
+        if ranks == [0, 1, 2, 3]:  # A, 2, 3, 4
             if any(card.rank == 'A' for card in available_cards):
                 return True
-        if ranks == [0, 1, 2, 12]:
-            if any(card.rank == '3' for card in available_cards):
+        if ranks == [0, 1, 2, 12]:  # A, 2, 3, K
+            if any(card.rank == '4' for card in available_cards):  # Нужна 4
                 return True
-        if ranks == [0, 1, 11, 12]:
-            if any(card.rank == '2' for card in available_cards):
+        if ranks == [0, 1, 11, 12]:  # A, 2, Q, K
+            if any(card.rank == '3' for card in available_cards):  # Нужна 3
                 return True
-        if ranks == [0, 10, 11, 12]:
-            if any(card.rank == '1' for card in available_cards):
+        if ranks == [0, 10, 11, 12]:  # A, J, Q, K
+            if any(card.rank == 'T' for card in available_cards):  # Нужна T (10)
                 return True
 
         return False

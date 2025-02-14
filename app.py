@@ -176,7 +176,7 @@ def update_state():
             if key in game_state:
                 if key == 'discarded_cards':
                     session['game_state'][key] = [
-                        Card.from_dict(card) if isinstance(card, dict) else None # ИСПРАВЛЕНО!
+                        Card.from_dict(card) if isinstance(card, dict) else None
                         for card in game_state[key]
                     ]
                     logger.debug(f"Обновлены discarded_cards в сессии: {session['game_state']['discarded_cards']}")
@@ -351,7 +351,7 @@ def ai_move():
         if move is None or 'error' in move:
             logger.error(f"Ошибка хода AI: {move.get('error', 'Unknown error')}")
             return jsonify({'error': move.get('error', 'Unknown error')}), 500
-        else: # Исправленный отступ здесь!
+        else:
             logger.debug(f"Получен ход AI: {move}")
 
     except Exception as e:

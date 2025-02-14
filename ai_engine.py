@@ -180,22 +180,7 @@ class GameState:
 
         if num_cards > 0:
             try:
-                #  Убрал проверку на first_deal
-                # if placement_mode == "first_deal":  # Первая раздача (5 карт)
-                #     # Размещаем все 5 карт
-                #     for p in itertools.permutations(self.selected_cards.cards):
-                #         action = {
-                #             'top': list(p[:3]),  #  ИСПРАВЛЕНО: 3 карты в top
-                #             'middle': list(p[3:8]),  #  ИСПРАВЛЕНО: 5 карт в middle
-                #             'bottom': list(p[8:13]), #  ИСПРАВЛЕНО: 5 карт в bottom
-                #             'discarded': []  #  ИСПРАВЛЕНО: Ничего не сбрасываем, должен быть пустой список
-                #         }
-                #         #  ПРОВЕРКА:  Добавляем проверку на валидность расстановки
-                #         if len(action['top']) + len(action['middle']) + len(action['bottom']) == 5:
-                #             actions.append(action)
-
-
-                if self.is_fantasy: # Режим Фантазия
+                if self.ai_settings.get('fantasyMode', False): # Режим Фантазия, проверка настройки
                     #  AI должен получить 14 карт (или больше) и разместить 13, одну сбросив.
                     #  Это обрабатывается в `deal_next_cards` и `place_next_cards`.
                     #  Здесь мы просто перебираем все перестановки и выбираем лучшие (или повторяем фантазию).
@@ -247,7 +232,7 @@ class GameState:
                                     'top': remaining_cards[:top_count],
                                     'middle': remaining_cards[top_count:top_count + middle_count],
                                     'bottom': remaining_cards[top_count + middle_count:],
-                                    'discarded': []  # Ничего не сбрасываем
+                                    'discarded': None  # Ничего не сбрасываем
                                 }
                                 actions.append(action)
 
@@ -675,12 +660,12 @@ class CFRAgent:
             all_cards = Card.get_all_cards()
             random.shuffle(all_cards)
             game_state = GameState(deck=all_cards)
-            game_state.selected_cards = Hand(all_cards[:5])
-            self.cfr(game_state, 1, 1, timeout_event, result, i + 1)
+            game_state.selected_cards = Hand(all_cards[:5])  # Сразу выбираем 5 карт
+            self.cfr(game_state, 1, 1, timeout_event, result, i + 1) # Передаем номер итерации
 
-            if (i + 1) % self.save_interval == 0:
+            if (i + 1) % self.save_interval == 0: # Check every save_interval iterations
                 logger.info(f"Iteration {i+1} of {self.iterations} complete. Saving progress...")
-                self.save_progress()
+                self.save_progress() # Сохраняем прогресс
                 if self.check_convergence():
                     logger.info(f"CFR agent converged after {i + 1} iterations.")
                     break
@@ -1177,4 +1162,3 @@ class RandomAgent:
 
     def load_progress(self):
         pass
-

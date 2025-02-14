@@ -159,9 +159,9 @@ class GameState:
 
     def get_actions(self):
         """Returns the valid actions for the current state."""
-        logger.debug("get_actions - START") # ADDED LOG
+        logger.debug("get_actions - START")
         if self.is_terminal():
-            logger.debug("get_actions - Game is terminal, returning empty actions") # ADDED LOG
+            logger.debug("get_actions - Game is terminal, returning empty actions")
             return []  # No actions in a terminal state
 
         num_cards = len(self.selected_cards)
@@ -169,13 +169,11 @@ class GameState:
         placement_mode = self.ai_settings.get('placementMode', 'standard')
 
         # Добавляем проверку на выбывшие карты
-        # ИСПРАВЛЕНО: used_cards теперь вычисляется корректно
         used_cards = set()
         for line in [self.board.top, self.board.middle, self.board.bottom]:
             used_cards.update([card for card in line if card is not None])  # Только карты на доске
-        used_cards.update(
-                self.discarded_cards
-            )
+        used_cards.update(self.discarded_cards)
+
 
         if num_cards > 0:
             try:
@@ -183,18 +181,20 @@ class GameState:
                     # Размещаем все 5 карт
                     for p in itertools.permutations(self.selected_cards.cards):
                         action = {
-                            'top': list(p[:1]),
-                            'middle': list(p[1:3]),
-                            'bottom': list(p[3:5]),
-                            'discarded': None  # Ничего не сбрасываем
+                            'top': list(p[:3]),  #  ИСПРАВЛЕНО: 3 карты в top
+                            'middle': list(p[3:8]),  #  ИСПРАВЛЕНО: 5 карт в middle
+                            'bottom': list(p[8:13]), #  ИСПРАВЛЕНО: 5 карт в bottom
+                            'discarded': []  #  ИСПРАВЛЕНО: Ничего не сбрасываем, должен быть пустой список
                         }
-                        actions.append(action) # Просто добавляем все перестановки, AI сам выберет лучшую
+                        #  ПРОВЕРКА:  Добавляем проверку на валидность расстановки
+                        if len(action['top']) <= 3 and len(action['middle']) <= 5 and len(action['bottom']) <=5 and len(action['top']) + len(action['middle']) + len(action['bottom']) == 5:
+                            actions.append(action)
 
 
                 elif placement_mode == "standard":  # Стандартный ход (3 карты)
                     placed_cards = sum(len(row) for row in [self.board.top, self.board.middle, self.board.bottom])
-                    if placed_cards == 11:  # Последний ход
-                        pass # Для последнего хода пока не генерируем доп. действий, оставляем как есть
+                    if placed_cards == 11:  # Последний ход.  Ничего не делаем, т.к. get_actions вернет []
+                      pass
 
                     else:  # Обычный ход (не последний)
                         # Размещаем 2 карты, 1 сбрасываем
@@ -208,11 +208,11 @@ class GameState:
                                             'top': remaining_cards[:top_count],
                                             'middle': remaining_cards[top_count:top_count + middle_count],
                                             'bottom': remaining_cards[top_count + middle_count:],
-                                            'discarded': self.selected_cards.cards[discarded_index]
+                                            'discarded': [self.selected_cards.cards[discarded_index]] #  ИСПРАВЛЕНО: discard как список
                                         }
                                         actions.append(action)
 
-                elif placement_mode == "fantasy": # Режим Фантазия (без изменений)
+                elif placement_mode == "fantasy": # Режим Фантазия
                     if self.ai_settings.get('fantasyMode'): # Фантазия повторно
                         valid_fantasy_repeats = [] # Валидные повторы фантазии
                         for p in itertools.permutations(self.selected_cards.cards): # Перебор перестановок

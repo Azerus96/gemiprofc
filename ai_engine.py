@@ -180,7 +180,8 @@ class GameState:
 
         if num_cards > 0:
             try:
-                if self.ai_settings.get('fantasyMode', False): # Режим Фантазия, проверка настройки
+                #  ИСПРАВЛЕНО:  Используем self.ai_settings.get('fantasyMode')
+                if self.ai_settings.get('fantasyMode', False): # Режим Фантазия
                     #  AI должен получить 14 карт (или больше) и разместить 13, одну сбросив.
                     #  Это обрабатывается в `deal_next_cards` и `place_next_cards`.
                     #  Здесь мы просто перебираем все перестановки и выбираем лучшие (или повторяем фантазию).
@@ -660,12 +661,12 @@ class CFRAgent:
             all_cards = Card.get_all_cards()
             random.shuffle(all_cards)
             game_state = GameState(deck=all_cards)
-            game_state.selected_cards = Hand(all_cards[:5])  # Сразу выбираем 5 карт
-            self.cfr(game_state, 1, 1, timeout_event, result, i + 1) # Передаем номер итерации
+            game_state.selected_cards = Hand(all_cards[:5])
+            self.cfr(game_state, 1, 1, timeout_event, result, i + 1)
 
-            if (i + 1) % self.save_interval == 0: # Check every save_interval iterations
+            if (i + 1) % self.save_interval == 0:
                 logger.info(f"Iteration {i+1} of {self.iterations} complete. Saving progress...")
-                self.save_progress() # Сохраняем прогресс
+                self.save_progress()
                 if self.check_convergence():
                     logger.info(f"CFR agent converged after {i + 1} iterations.")
                     break
@@ -1162,3 +1163,4 @@ class RandomAgent:
 
     def load_progress(self):
         pass
+                

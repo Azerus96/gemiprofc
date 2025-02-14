@@ -6,7 +6,7 @@ from threading import Event, Thread
 import time
 import math
 import logging
-from typing import List, Dict, Tuple, Optional, Union  #  Добавили List
+from typing import List, Dict, Tuple, Optional, Union
 
 # Настройка логирования
 logger = logging.getLogger(__name__)

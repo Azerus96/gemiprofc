@@ -18,7 +18,7 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # Глобальные экземпляры AI
-cfr_agent = None
+cfr_agent = None  # Инициализируем, но создаем, только если нужен MCCFR
 random_agent = RandomAgent()
 
 def initialize_ai_agent(ai_settings):
@@ -29,61 +29,53 @@ def initialize_ai_agent(ai_settings):
         stop_threshold = float(ai_settings.get('stopThreshold', 0.001))
     except ValueError as e:
         logger.error(f"Неверные значения iterations или stopThreshold: {e}. Используются значения по умолчанию.")
-        iterations = 10000  # Установим более высокое значение по умолчанию
+        iterations = 10000
         stop_threshold = 0.001
 
-    cfr_agent = CFRAgent(iterations=iterations, stop_threshold=stop_threshold)
-    logger.info(f"AI агент MCCFR инициализирован: {cfr_agent}") # ADDED LOG
+    if ai_settings.get('aiType') == 'mccfr':  # Создаем CFRAgent только если нужен MCCFR
+        cfr_agent = CFRAgent(iterations=iterations, stop_threshold=stop_threshold)
+        logger.info(f"AI агент MCCFR инициализирован: {cfr_agent}")
 
-    if os.environ.get("AI_PROGRESS_TOKEN"):
-        try:
-            # Загрузка с GitHub
-            logger.info("Попытка загрузить прогресс AI с GitHub...") # ADDED LOG
-            if github_utils.load_ai_progress_from_github():
-                data = utils.load_ai_progress('cfr_data.pkl') # Загружаем локально ПОСЛЕ GitHub
-                if data:
-                    cfr_agent.nodes = data['nodes']
-                    cfr_agent.iterations = data['iterations']
-                    cfr_agent.stop_threshold = data.get('stop_threshold', 0.0001)
-                    logger.info("Прогресс AI успешно загружен и применен к агенту.") # ADDED LOG
+        if os.environ.get("AI_PROGRESS_TOKEN"):
+            try:
+                # Загрузка с GitHub
+                logger.info("Попытка загрузить прогресс AI с GitHub...")
+                if github_utils.load_ai_progress_from_github():
+                    data = utils.load_ai_progress('cfr_data.pkl') # Загружаем локально ПОСЛЕ GitHub
+                    if data:
+                        cfr_agent.nodes = data['nodes']
+                        cfr_agent.iterations = data['iterations']
+                        cfr_agent.stop_threshold = data.get('stop_threshold', 0.0001)
+                        logger.info("Прогресс AI успешно загружен и применен к агенту.")
+                    else:
+                        logger.warning("Прогресс AI с GitHub загружен, но данные повреждены или пусты.")
                 else:
-                    logger.warning("Прогресс AI с GitHub загружен, но данные повреждены или пусты.") # ADDED LOG
-            else:
-                logger.warning("Не удалось загрузить прогресс AI с GitHub.")
+                    logger.warning("Не удалось загрузить прогресс AI с GitHub.")
 
-        except Exception as e:
-            logger.error(f"Ошибка загрузки прогресса AI: {e}")
+            except Exception as e:
+                logger.error(f"Ошибка загрузки прогресса AI: {e}")
+        else:
+            logger.info("AI_PROGRESS_TOKEN не установлен. Загрузка прогресса отключена.")
     else:
-        logger.info("AI_PROGRESS_TOKEN не установлен. Загрузка прогресса отключена.")
+        cfr_agent = None  # Если не MCCFR, то cfr_agent не нужен
+        logger.info("Используется случайный AI агент.")
 
-# Инициализация AI агента с настройками по умолчанию при запуске
-initialize_ai_agent({})
 
 def serialize_card(card):
     return card.to_dict() if card else None
 
-def serialize_move(move, next_slots):
-    logger.debug(f"Сериализация хода: {move}, next_slots: {next_slots}")
+def serialize_move(move): # Убрал next_slots
+    logger.debug(f"Сериализация хода: {move}")
     serialized = {
         key: [serialize_card(card) for card in cards] if isinstance(cards, list) else serialize_card(cards)
         for key, cards in move.items()
     }
-    serialized['next_available_slots'] = next_slots
+    # next_slots больше не нужен, т.к. мы не передаем его в ответе
     logger.debug(f"Сериализованный ход: {serialized}")
     return serialized
 
-def get_next_available_slots(board):
-    logger.debug("Вычисление следующих доступных слотов")
-    next_slots = {}
-    for line in ['top', 'middle', 'bottom']:
-        line_cards = board.get(line, [])
-        slot = 0
-        # Исправлено: используем None для проверки занятости слота
-        while slot < len(line_cards) and line_cards[slot] is not None:
-            slot += 1
-        next_slots[line] = slot
-    logger.debug(f"Следующие доступные слоты: {next_slots}")
-    return next_slots
+# next_available_slots больше не нужна, т.к. мы не передаем ее в ответе
+# def get_next_available_slots(board): ...
 
 @app.route('/')
 def home():
@@ -94,7 +86,7 @@ def home():
 def training():
     logger.debug("Обработка запроса страницы тренировки")
 
-    # Инициализация состояния, *ДАЖЕ ЕСЛИ* оно уже есть в сессии (для настроек по умолчанию)
+    # Инициализация состояния сессии
     session['game_state'] = {
         'selected_cards': [],
         'board': {
@@ -113,12 +105,10 @@ def training():
             'placementMode': 'standard'
         }
     }
-    logger.info(f"Инициализировано/перезаписано состояние игры: {session['game_state']}")
+    logger.info(f"Инициализировано состояние игры: {session['game_state']}")
 
-
-    # Проверка необходимости реинициализации AI (оставляем как было)
-    if (cfr_agent is None or
-        session['game_state']['ai_settings'] != session.get('previous_ai_settings')):
+    # Проверка необходимости реинициализации AI
+    if session.get('previous_ai_settings') != session['game_state']['ai_settings']:
         initialize_ai_agent(session['game_state']['ai_settings'])
         session['previous_ai_settings'] = session['game_state']['ai_settings'].copy()
         logger.info(f"Реинициализирован AI агент с настройками: {session['game_state']['ai_settings']}")
@@ -135,7 +125,7 @@ def update_state():
 
     try:
         game_state = request.get_json()
-        logger.debug(f"Получено обновление состояния игры: game_state type: {type(game_state)}, данные: {game_state}")
+        logger.debug(f"Получено обновление состояния игры: {game_state}")
 
         if not isinstance(game_state, dict):
             logger.error("Ошибка: Неверный формат состояния игры (не словарь)")
@@ -150,7 +140,7 @@ def update_state():
 
         # Обновление доски - сохраняем существующие карты
         if 'board' in game_state:
-            current_board = session['game_state'].get('board', {
+            current_board = session['game_state'].get('board', {  #  Используем .get()
                 'top': [None] * 3,
                 'middle': [None] * 5,
                 'bottom': [None] * 5
@@ -160,9 +150,9 @@ def update_state():
             for line in ['top', 'middle', 'bottom']:
                 if line in game_state['board']:
                     new_line = game_state['board'][line]
-                    current_line = current_board[line]
+                    current_line = current_board.get(line, []) #  Используем .get()
                     for i, new_card in enumerate(new_line):
-                        if i < len(current_line):
+                        if i < len(current_line):  #  Проверяем индекс
                             if new_card is not None:
                                 # Важно: преобразуем словарь в объект Card
                                 current_line[i] = Card.from_dict(new_card) if isinstance(new_card, dict) else None
@@ -174,37 +164,30 @@ def update_state():
         # Обновление других ключей.  Преобразуем словари в объекты Card.
         for key in ['selected_cards', 'discarded_cards']:
             if key in game_state:
-                if key == 'discarded_cards':
-                    session['game_state'][key] = [
-                        Card.from_dict(card) if isinstance(card, dict) else None
-                        for card in game_state[key]
-                    ]
-                    logger.debug(f"Обновлены discarded_cards в сессии: {session['game_state']['discarded_cards']}")
-                else:
-                    session['game_state'][key] = [
-                        Card.from_dict(card) if isinstance(card, dict) else None
-                        for card in game_state[key]
-                    ]
-                    logger.debug(f"Обновлены selected_cards в сессии: {session['game_state']['selected_cards']}")
+                session['game_state'][key] = [
+                    Card.from_dict(card) if isinstance(card, dict) else None
+                    for card in game_state[key]
+                ]
+                logger.debug(f"Обновлены {key} в сессии: {session['game_state'][key]}")
 
         # Добавляем карты, удаленные через "-", в discarded_cards
-        if 'removed_cards' in game_state:  # 'removed_cards' приходит из frontend
+        if 'removed_cards' in game_state:
             removed_cards = [Card.from_dict(card) if isinstance(card, dict) else card for card in game_state['removed_cards']]
-            session['game_state']['discarded_cards'].extend([card.to_dict() for card in removed_cards])
+            session['game_state']['discarded_cards'].extend([card.to_dict() for card in removed_cards]) #  Сохраняем как словари
             logger.debug(f"removed_cards добавлены в discarded_cards сессии: {session['game_state']['discarded_cards']}")
-
+            #  Удаляем удаленные карты из selected_cards
             session['game_state']['selected_cards'] = [
                 card for card in session['game_state']['selected_cards']
-                if card.to_dict() not in [removed_card.to_dict() for removed_card in game_state['removed_cards']]
+                if card.to_dict() not in [removed_card.to_dict() for removed_card in removed_cards]
             ]
+
         if 'ai_settings' in game_state:
             session['game_state']['ai_settings'] = game_state['ai_settings']
-
-        # Реинициализация AI агента при изменении настроек
-        if game_state.get('ai_settings') != session.get('previous_ai_settings'):
-            logger.info("Настройки AI изменились, реинициализация агента")
-            initialize_ai_agent(game_state['ai_settings'])
-            session['previous_ai_settings'] = game_state.get('ai_settings', {}).copy()
+            # Реинициализация AI агента при изменении настроек
+            if game_state.get('ai_settings') != session.get('previous_ai_settings'):
+                logger.info("Настройки AI изменились, реинициализация агента")
+                initialize_ai_agent(game_state['ai_settings'])
+                session['previous_ai_settings'] = game_state.get('ai_settings', {}).copy() #  Важно: копируем!
 
         logger.debug(f"Состояние сессии ПОСЛЕ обновления: {session['game_state']}")
         logger.debug("Обработка запроса обновления состояния - END")
@@ -221,7 +204,7 @@ def ai_move():
 
     logger.debug("Обработка запроса хода AI - START")
     game_state_data = request.get_json()
-    logger.debug(f"Получены данные состояния игры для хода AI: game_state_data type: {type(game_state_data)}, данные: {game_state_data}")
+    logger.debug(f"Получены данные состояния игры для хода AI: {game_state_data}")
 
     if not isinstance(game_state_data, dict):
         logger.error("Ошибка: game_state_data не является словарем")
@@ -232,57 +215,29 @@ def ai_move():
     ai_type = ai_settings.get('aiType', 'mccfr')
 
     try:
-        # Обработка и валидация данных
-        selected_cards_data = game_state_data.get('selected_cards', [])
-        if not isinstance(selected_cards_data, list):
-            logger.error("Ошибка: selected_cards не является списком")
-            return jsonify({'error': 'Invalid selected_cards format'}), 400
-        selected_cards = [Card.from_dict(card) for card in selected_cards_data]
-        logger.debug(f"Обработанные selected_cards: selected_cards type: {type(selected_cards)}, данные: {selected_cards}")
-
-        discarded_cards_data = game_state_data.get('discarded_cards', [])
-        if not isinstance(discarded_cards_data, list):
-            logger.error("Ошибка: discarded_cards не является списком")
-            return jsonify({'error': 'Invalid discarded_cards format'}), 400
-        discarded_cards = [Card.from_dict(card) for card in discarded_cards_data]
-        logger.debug(f"Обработанные discarded_cards: discarded_cards type: {type(discarded_cards)}, данные: {discarded_cards}")
+        # Обработка и валидация данных (используем .get() с значениями по умолчанию)
+        selected_cards = [Card.from_dict(card) for card in game_state_data.get('selected_cards', [])]
+        discarded_cards = [Card.from_dict(card) for card in game_state_data.get('discarded_cards', [])]
 
         board_data = game_state_data.get('board', {})
-        if not isinstance(board_data, dict):
-            logger.error("Ошибка: board не является словарем")
-            return jsonify({'error': 'Invalid board format'}), 400
-
-        # Создание объекта доски с сохранением существующих карт
         board = ai_engine.Board()
         for line in ['top', 'middle', 'bottom']:
             line_data = board_data.get(line, [])
-            if not isinstance(line_data, list):
-                logger.error(f"Ошибка: board[{line}] не является списком")
-                return jsonify({'error': f'Invalid board[{line}] format'}), 400
             for card_data in line_data:
-                if card_data:
+                if card_data:  #  Проверяем, что card_data не None
                     board.place_card(line, Card.from_dict(card_data))
+
         logger.debug(f"Обработанная доска: {board}")
-
-        # Подсчет свободных слотов (оставляем для логгирования, но не используем для ограничений)
-        occupied_slots = sum(1 for line in ['top', 'middle', 'bottom']
-                             for card in session['game_state']['board'].get(line, [])
-                             if card is not None)
-        free_slots = 13 - occupied_slots
-
-        logger.debug(f"Всего занято слотов: {occupied_slots}")
-        logger.debug(f"Свободных слотов: {free_slots}")
-        logger.debug(f"Количество выбранных карт: {num_cards}")
 
         # Создание состояния игры
         game_state = ai_engine.GameState(
             selected_cards=selected_cards,
             board=board,
-            discarded_cards=discarded_cards,  # Передаем список объектов Card!
+            discarded_cards=discarded_cards,
             ai_settings=ai_settings,
-            deck=ai_engine.Card.get_all_cards()
+            deck=ai_engine.Card.get_all_cards() #  Передаем полную колоду
         )
-        logger.debug(f"Создано состояние игры: {game_state}, type: {type(game_state)}")
+        logger.debug(f"Создано состояние игры: {game_state}")
 
         # Проверка терминального состояния
         if game_state.is_terminal():
@@ -295,9 +250,9 @@ def ai_move():
             # Сохранение прогресса AI (для MCCFR)
             if cfr_agent and ai_settings.get('aiType') == 'mccfr':
                 try:
-                    cfr_agent.save_progress() # Сначала сохраняем локально
+                    cfr_agent.save_progress()
                     logger.info("Прогресс AI сохранен локально.")
-                    if github_utils.save_ai_progress_to_github():  # Попытка сохранить на GitHub
+                    if github_utils.save_ai_progress_to_github():
                         logger.info("Прогресс AI сохранен на GitHub.")
                     else:
                         logger.warning("Не удалось сохранить прогресс AI на GitHub.")
@@ -311,9 +266,7 @@ def ai_move():
                 'total_royalty': total_royalty
             }), 200
 
-        # Получение следующих доступных слотов
-        next_available_slots = get_next_available_slots(session['game_state']['board'])
-        logger.debug(f"Следующие доступные слоты ПЕРЕД ходом AI: {next_available_slots}")
+        #  Убрал вычисление next_available_slots, т.к. оно не нужно для запроса
 
     except (KeyError, TypeError, ValueError) as e:
         logger.exception("Исключение при настройке состояния игры:")
@@ -322,95 +275,46 @@ def ai_move():
     timeout_event = Event()
     result = {'move': None}
 
-    # Выбор и выполнение хода AI
-    try:
-        if ai_type == 'mccfr':
-            if cfr_agent is None:
-                logger.error("Ошибка: MCCFR агент не инициализирован")
-                return jsonify({'error': 'MCCFR agent not initialized'}), 500
-            ai_thread = Thread(target=cfr_agent.get_move,
-                             args=(game_state, timeout_event, result))
-        elif ai_type == 'random':
-            ai_thread = Thread(target=random_agent.get_move,
-                             args=(game_state, timeout_event, result))
-        else:
-            logger.error(f"Неизвестный тип AI агента: {ai_type}")
-            return jsonify({'error': f'Unknown AI agent type: {ai_type}'}), 400
+    # Выбор AI агента
+    if ai_type == 'mccfr':
+        if cfr_agent is None:  #  Проверяем, инициализирован ли агент
+            logger.error("Ошибка: MCCFR агент не инициализирован")
+            return jsonify({'error': 'MCCFR agent not initialized'}), 500
+        ai_thread = Thread(target=cfr_agent.get_move, args=(game_state, timeout_event, result))
+    elif ai_type == 'random':
+        ai_thread = Thread(target=random_agent.get_move, args=(game_state, timeout_event, result))
+    else:
+        logger.error(f"Неизвестный тип AI агента: {ai_type}")
+        return jsonify({'error': f'Unknown AI agent type: {ai_type}'}), 400
 
-        ai_thread.start()
-        ai_thread.join(timeout=int(ai_settings.get('aiTime', 5)))
+    ai_thread.start()
+    ai_thread.join(timeout=int(ai_settings.get('aiTime', 5)))  #  Таймаут из настроек
 
-        if ai_thread.is_alive():
-            timeout_event.set()
-            ai_thread.join()
-            logger.warning("Время ожидания хода AI истекло")
-            return jsonify({'error': 'AI move timed out'}), 504
+    if ai_thread.is_alive():
+        timeout_event.set()
+        ai_thread.join()  #  Ожидаем завершения потока
+        logger.warning("Время ожидания хода AI истекло")
+        return jsonify({'error': 'AI move timed out'}), 504
 
-        move = result.get('move')
-        logger.debug(f"Получен ход AI: move type: {type(move)}, данные: {move}")
-        if move is None or 'error' in move:
-            logger.error(f"Ошибка хода AI: {move.get('error', 'Unknown error')}")
-            return jsonify({'error': move.get('error', 'Unknown error')}), 500
-        else:
-            logger.debug(f"Получен ход AI: {move}")
+    move = result.get('move')
+    logger.debug(f"Получен ход AI: {move}")
+    if move is None or 'error' in move:
+        logger.error(f"Ошибка хода AI: {move.get('error', 'Unknown error')}")
+        return jsonify({'error': move.get('error', 'Unknown error')}), 500
 
-    except Exception as e:
-        logger.exception("Исключение при выполнении хода AI:")
-        return jsonify({'error': f"Error during AI move execution: {e}"}), 500
+    #  Убрал обновление состояния сессии здесь.  Оно делается в update_state.
 
-    # Сериализация и отправка ответа
-    try:
-        serialized_move = serialize_move(move, next_available_slots)
-        logger.debug(f"Сериализованный ход: serialized_move type: {type(serialized_move)}, данные: {serialized_move}")
+    # Расчет роялти (после применения хода)
+    royalties = game_state.calculate_royalties()
+    total_royalty = sum(royalties.values())
 
-        #  Обновляем состояние сессии *ДО* расчета роялти
-        if move:
-            logger.info("Обновление состояния игры в сессии (перед расчетом роялти)")
-            current_board = session['game_state']['board']
-
-            # Добавляем только новые карты, сохраняя существующие
-            for line in ['top', 'middle', 'bottom']:
-                if line in move:
-                    new_line = move[line]  # Это список объектов Card (или пустой список)
-                    current_line = current_board[line]  # Это тоже список
-                    slot_index = next_available_slots[line] # Смотрим, куда ставить
-
-                    for new_card in new_line: # Итерируем по *новым* картам
-                        if new_card is not None:
-                            if slot_index < len(current_line):
-                                current_line[slot_index] = new_card  # Кладем карту
-                                slot_index += 1 # Двигаем индекс
-                            else:
-                                logger.error(f"Ошибка: Недостаточно места в линии {line}!")
-
-            session['game_state']['board'] = current_board
-
-            # Обновляем selected_cards и discarded_cards
-            session['game_state']['selected_cards'] = []
-            if 'discarded' in move and move['discarded']:
-                if isinstance(move['discarded'], list):
-                     session['game_state']['discarded_cards'].extend(move['discarded'])
-                else:
-                    session['game_state']['discarded_cards'].append(move['discarded'])
-
-            logger.debug(f"Обновленная доска в сессии (после хода): {session['game_state']['board']}")
-
-        # Расчет роялти *ПОСЛЕ* обновления доски в сессии.
-        royalties = game_state.calculate_royalties()
-        logger.debug(f"Рассчитанные роялти: royalties type: {type(royalties)}, данные: {royalties}")
-        total_royalty = sum(royalties.values())
-
-        logger.debug(f"Отправка хода AI: {serialized_move}, Роялти: {royalties}, Всего роялти: {total_royalty}")
-        logger.debug("Обработка запроса хода AI - END")
-        return jsonify({
-            'move': serialized_move,
-            'royalties': royalties,
-            'total_royalty': total_royalty
-        }), 200
-
-    except Exception as e:
-        logger.exception("Исключение при сериализации и отправке ответа:")
-        return jsonify({'error': f"Error during move serialization: {e}"}), 500
+    logger.debug(f"Отправка хода AI: {move}, Роялти: {royalties}, Всего роялти: {total_royalty}")
+    logger.debug("Обработка запроса хода AI - END")
+    return jsonify({
+        'move': serialize_move(move),  #  Убрал next_available_slots
+        'royalties': royalties,
+        'total_royalty': total_royalty
+    }), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=10000)

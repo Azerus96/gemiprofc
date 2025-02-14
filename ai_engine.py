@@ -1,7 +1,7 @@
 import random
 import itertools
 from collections import defaultdict, Counter
-import utils
+import utils  #  Для save_ai_progress и load_ai_progress
 from threading import Event, Thread
 import time
 import math
@@ -41,7 +41,7 @@ class Card:
         return Card(card_dict['rank'], card_dict['suit'])
 
     @staticmethod
-    def get_all_cards(): # Исправлено: убрали self
+    def get_all_cards():
         return [Card(rank, suit) for rank in Card.RANKS for suit in Card.SUITS]
 
 class Hand:
@@ -59,7 +59,7 @@ class Hand:
         try:
             self.cards.remove(card)
         except ValueError:
-            print(f"Card {card} not found in hand: {self.cards}")
+            print(f"Card {card} not found in hand: {self.cards}") #  Лучше, наверное, logger.warning
 
     def __repr__(self):
         return ', '.join(map(str, self.cards))
@@ -259,7 +259,7 @@ class GameState:
         logger.debug(f"Generated actions: {actions}")
         logger.debug("get_actions - END") # ADDED LOG
         return actions
-        
+
     def is_valid_fantasy_entry(self, action):
         """Checks if an action leads to a valid fantasy mode entry."""
         new_board = Board()
@@ -929,7 +929,7 @@ class CFRAgent:
                 score = Card.RANKS.index(cards[-1].rank) * 0.001
 
         return score
-    
+
     def baseline_evaluation(self, state):
         """
         Улучшенная эвристическая оценка состояния игры.
@@ -991,47 +991,6 @@ class CFRAgent:
                     score += 40 + rank_value * 1.5
 
             return score
-
-        # Оценка по рядам
-        rows = {'top': state.board.top, 'middle': state.board.middle, 'bottom': state.board.bottom} # ОШИБКА ТУТ
-        for row_name, cards in rows.items():
-            row_score = 0
-
-            # Определение текущей комбинации
-            combination = self.identify_combination(cards)
-            if combination:
-                row_score += COMBINATION_WEIGHTS[combination]
-
-            # Оценка потенциала неполной комбинации
-            potential_score = evaluate_partial_combination(cards, row_name)
-            row_score += potential_score
-
-            # Штраф за неправильное количество карт
-            max_cards = {'top': 3, 'middle': 5, 'bottom': 5}
-            if len(cards) > max_cards[row_name]:
-                row_score -= 50
-
-            # Применяем множитель ряда
-            row_score *= ROW_MULTIPLIERS[row_name]
-
-            total_score += row_score
-
-        # Дополнительные стратегические бонусы
-        if self.is_bottom_stronger_than_middle(state):
-            total_score += 30
-        if self.is_middle_stronger_than_top(state):
-            total_score += 20
-
-        # Штраф за нарушение правила силы рядов
-        if not self.check_row_strength_rule(state):
-            total_score -= 100
-
-        # Учет сброшенных карт
-        for card in state.discarded_cards:
-            rank_value = Card.RANKS.index(card.rank)
-            total_score -= rank_value * 0.5  # Небольшой штраф за сброс высоких карт
-
-        return total_score
 
         # Оценка по рядам
         rows = {'top': state.board.top, 'middle': state.board.middle, 'bottom': state.board.bottom}

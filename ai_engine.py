@@ -617,7 +617,7 @@ class CFRAgent:
             return 0
 
         if game_state.is_terminal():
-            payoff = game_state.get_payoff()
+                        payoff = game_state.get_payoff()
             logger.debug(f"cfr called in terminal state. Payoff: {payoff}")
             return payoff
 
@@ -951,7 +951,7 @@ class CFRAgent:
 
         total_score = 0
 
-        def evaluate_partial_combination(cards, row_type):
+    def evaluate_partial_combination(cards, row_type):
             """Оценка потенциала неполной комбинации"""
             if not cards:
                 return 0

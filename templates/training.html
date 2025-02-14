@@ -500,9 +500,6 @@ function createCard(cardData) {
         card.style.color = '#e44145';
     }
 
-    //  ИСПРАВЛЕНО:  Убрал двойной обработчик на dblclick отсюда
-    // card.addEventListener('dblclick', () => { ... });
-
     card.draggable = true;
     card.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/plain', ''); //  Нужно для Firefox
@@ -529,7 +526,7 @@ function setupTable() {
             slot.className = 'card-slot';
             slot.style.position = 'relative'; // Добавляем, чтобы royalty-animation работали
             slot.addEventListener('dragover', (e) => e.preventDefault());
-            slot.addEventListener('drop', handleDrop); //  Убрал inline, добавил handleDrop
+            slot.addEventListener('drop', handleDrop);
 
             const royaltyAnimation = document.createElement('div'); // Добавляем div для анимации роялти
             royaltyAnimation.classList.add('royalty-animation');
@@ -557,19 +554,20 @@ function setupTable() {
             console.log(`resetCombinationArea() - Конец. Создано 17 слотов для комбинаций.`);
         }
 
-    function handleCombinationSlotDrop(e) {
-        e.preventDefault();
-        const cardData = JSON.parse(e.dataTransfer.getData('card'));
-        const cardKey = `${cardData.rank}${cardData.suit}`;
 
-        //  Добавил проверку, если карта уже есть, то не добавляем
-        if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
-            const card = createCard(cardData);
-            e.currentTarget.appendChild(card);
-            unavailableCards.add(cardKey);
-            e.currentTarget.classList.add('taken'); //  Добавил класс taken
+        function handleCombinationSlotDrop(e) {
+            e.preventDefault();
+            const cardData = JSON.parse(e.dataTransfer.getData('card'));
+            const cardKey = `${cardData.rank}${cardData.suit}`;
+
+            //  Добавил проверку, если карта уже есть, то не добавляем
+            if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
+                const card = createCard(cardData);
+                e.currentTarget.appendChild(card);
+                unavailableCards.add(cardKey);
+                e.currentTarget.classList.add('taken'); //  Добавил класс taken
+            }
         }
-    }
 
         function getGameStateFromDOM() {
             console.log("getGameStateFromDOM() - Начало");
@@ -609,57 +607,54 @@ function setupTable() {
         }
 
 
-    function placeCardsOnBoard(moveData) {
-        console.log("placeCardsOnBoard() - Начало. moveData:", moveData);
-        const lines = ['top', 'middle', 'bottom'];
+       function placeCardsOnBoard(moveData) {
+          console.log("placeCardsOnBoard() - Начало. moveData:", moveData);
+          const lines = ['top', 'middle', 'bottom'];
 
-        lines.forEach(line => {
+          lines.forEach(line => {
             console.log(`placeCardsOnBoard() - Обработка линии: ${line}`);
             const row = document.getElementById(`${line}-row`);
-            if (!row) {
-                 console.error(`placeCardsOnBoard() - Элемент строки не найден для линии: ${line}`);
+              if (!row) {
+                console.error(`placeCardsOnBoard() - Элемент строки не найден для линии: ${line}`);
                 return;
-            }
+              }
             const slots = row.querySelectorAll('.card-slot');
             console.log(`placeCardsOnBoard() - Количество слотов найдено в ${line}-row: ${slots.length}`);
 
-            //  ИСПРАВЛЕНО: Находим первый пустой слот, начиная с начала линии
             let slotIndex = 0;
             while (slotIndex < slots.length && slots[slotIndex].querySelector('.card')) {
                 slotIndex++;
             }
             console.log(`placeCardsOnBoard() - Начальный slotIndex для ${line}: ${slotIndex}`);
 
-
             if (moveData && moveData[line]) {
-                moveData[line].forEach(cardData => {
-                    if (!cardData) return; // Пропускаем null
+              moveData[line].forEach(cardData => {
+                if (!cardData) return;
 
-                    if (slotIndex >= slots.length) { //  Добавил проверку
-                        console.error(`placeCardsOnBoard() - slotIndex за пределами границ для ${line}`);
-                        return;
-                    }
+                if (slotIndex >= slots.length) {
+                    console.error(`placeCardsOnBoard() - slotIndex за пределами границ для ${line}`);
+                    return;
+                }
 
-                    const slot = slots[slotIndex];
-                    if (!slot) { //  Добавил проверку
-                        console.error(`placeCardsOnBoard() - Слот не найден для индекса ${slotIndex}`);
-                        return;
-                    }
+                const slot = slots[slotIndex];
+                if (!slot) {
+                    console.error(`placeCardsOnBoard() - Слот не найден для индекса ${slotIndex}`);
+                    return;
+                }
 
-                    //  ИСПРАВЛЕНО: Проверяем, нет ли уже карты в этом слоте
-                    if (!slot.querySelector('.card')) {
-                        console.log(`placeCardsOnBoard() - Размещение карты ${cardData.rank}${cardData.suit}`);
-                        const card = createCard(cardData);
-                        slot.appendChild(card);
-                        unavailableCards.add(`${cardData.rank}${cardData.suit}`); //  Добавляем в unavailableCards
-                        slot.classList.add('taken'); //  Помечаем слот как занятый
-                    }
-                    slotIndex++; // Переходим к следующему слоту
-                });
+                if (!slot.querySelector('.card')) {
+                  console.log(`placeCardsOnBoard() - Размещение карты ${cardData.rank}${cardData.suit}`);
+                  const card = createCard(cardData);
+                  slot.appendChild(card);
+                  unavailableCards.add(`${cardData.rank}${cardData.suit}`);
+                  slot.classList.add('taken');
+                }
+                slotIndex++; // Переходим к следующему слоту
+              });
             }
-        });
-        console.log("placeCardsOnBoard() - Конец. Карты размещены на доске.");
-    }
+          });
+          console.log("placeCardsOnBoard() - Конец. Карты размещены на доске.");
+        }
 
 
     function handleCardSelection(element) {
@@ -691,7 +686,6 @@ function setupTable() {
           const cardKey = `${selectedRank}${selectedSuit}`;
           if (!unavailableCards.has(cardKey)) {
             const combinationArea = document.getElementById('combination-area');
-            //  ИСПРАВЛЕНО: Ищем пустой слот в combination-area
             const emptySlot = combinationArea.querySelector('.combination-slot:not(.taken)');
             if (emptySlot) {
               const card = createCard({ rank: selectedRank, suit: selectedSuit });
@@ -699,7 +693,6 @@ function setupTable() {
               unavailableCards.add(cardKey);
               emptySlot.classList.add('taken');
 
-              //  ИСПРАВЛЕНО: Сбрасываем выбор после добавления карты
               selectedRank = null;
               selectedSuit = null;
               document.querySelectorAll('.selector-item').forEach(el => el.classList.remove('selected'));
@@ -716,7 +709,7 @@ function setupTable() {
                 iterations: document.getElementById('iterations').value,
                 stopThreshold: document.getElementById('stopThreshold').value,
                 aiType: document.getElementById('aiType').value,
-                placementMode: 'standard' //  Добавил placementMode
+                placementMode: 'standard'
             };
         }
 
@@ -725,7 +718,6 @@ function setupTable() {
         const gameState = getGameStateFromDOM();
         const numCards = gameState.selected_cards.length;
         const isFantasyMode = document.getElementById('fantasyMode').checked;
-        //  ИСПРАВЛЕНО: Добавил проверку на первый ход
         const isFirstDeal = gameState.board.top.every(c => c === null) && gameState.board.middle.every(c => c === null) && gameState.board.bottom.every(c => c === null);
 
         let placementMode;
@@ -742,13 +734,13 @@ function setupTable() {
 
         if (numCards > 0) {
             console.log("distributeCards() - Вызов ИИ для распределения карт");
-            const aiSettings = getAiSettings(); // Получаем настройки
+            const aiSettings = getAiSettings();
 
             const requestData = JSON.stringify({
                 selected_cards: gameState.selected_cards,
                 board: gameState.board,
                 discarded_cards: gameState.discarded_cards,
-                ai_settings: aiSettings //  Передаем настройки
+                ai_settings: aiSettings
             });
             console.log("distributeCards() - Отправка данных на /ai_move:", requestData);
 
@@ -762,7 +754,7 @@ function setupTable() {
            .then(response => {
                 console.log("distributeCards() - Ответ сервера статус:", response.status);
                 if (!response.ok) {
-                    return response.text().then(text => { //  Добавил обработку текста ошибки
+                    return response.text().then(text => {
                         console.error(`distributeCards() - HTTP ошибка! статус: ${response.status}, текст: ${text}`);
                         throw new Error(`HTTP error! status: ${response.status}, text: ${text}`);
                     });
@@ -772,32 +764,27 @@ function setupTable() {
             .then(data => {
                 console.log("distributeCards() - Ответ сервера данные:", data);
                 if (data.error) {
-                    alert(data.error); //  Показываем ошибку пользователю
+                    alert(data.error);
                     return;
                 }
 
-                // Размещаем новые карты
                 placeCardsOnBoard(data.move);
 
                 if (data.royalties) {
                     displayRoyalties(data.royalties);
                 }
-                if (data.total_royalty !== undefined) { //  Добавил проверку
+                if (data.total_royalty !== undefined) {
                     displayTotalRoyalty(data.total_royalty);
                 }
 
-                // Очищаем область комбинации
                 resetCombinationArea();
-
-                saveGameStateToSession(); //  Сохраняем состояние
-
-                // Очищаем выбранные карты
+                saveGameStateToSession();
                 gameState.selected_cards = []; //  Очищаем selected_cards
                 console.log("distributeCards() - selected_cards очищены.");
             })
             .catch(error => {
                 console.error('distributeCards() - Ошибка:', error);
-                alert('Произошла ошибка при получении хода ИИ.'); //  Показываем ошибку пользователю
+                alert('Произошла ошибка при получении хода ИИ.');
             });
         } else {
             alert('Пожалуйста, выберите карты для добавления.');
@@ -807,58 +794,57 @@ function setupTable() {
 
 
     function removeSelectedCards() {
-        console.log("removeSelectedCards() - Начало");
-        const combinationArea = document.getElementById('combination-area');
-        const removedCards = [];
-        let slotsChanged = false;
+      console.log("removeSelectedCards() - Начало");
+      const combinationArea = document.getElementById('combination-area');
+      const removedCards = [];
+      let slotsChanged = false;
 
-        combinationArea.querySelectorAll('.combination-slot.taken').forEach(slot => {
-            const card = slot.querySelector('.card');
-            if (card) { //  Добавил проверку
-              const cardKey = `${card.dataset.rank}${card.dataset.suit}`;
-              if (!isCardOnBoard({rank: card.dataset.rank, suit: card.dataset.suit})) {
-                unavailableCards.delete(cardKey);
-                removedCards.push({ rank: card.dataset.rank, suit: card.dataset.suit });
-              }
-              card.remove();
-              slot.classList.remove('taken');
-              slotsChanged = true;
-            }
-        });
-
-        if (slotsChanged && removedCards.length > 0) {
-            fetch('/update_state', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  ...getGameStateFromDOM(),
-                  removed_cards: removedCards,
-                  ai_settings: getAiSettings()
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            }).then(data => {
-              if(data.error){
-                console.error("Ошибка при обновлении состояния:", data.error);
-                alert("Ошибка при обновлении состояния: " + data.error);
-              } else {
-                console.log("removeSelectedCards() - Сервер: состояние обновлено, удаленные карты:", removedCards);
-              }
-            })
-            .catch(error => {
-                console.error('removeSelectedCards() - Ошибка при обновлении состояния:', error);
-            });
-        } else {
-            console.log("removeSelectedCards() - Карты не выбраны для удаления или нечего удалять.");
+      combinationArea.querySelectorAll('.combination-slot.taken').forEach(slot => {
+        const card = slot.querySelector('.card');
+        if (card) {
+          const cardKey = `${card.dataset.rank}${card.dataset.suit}`;
+          if (!isCardOnBoard({rank: card.dataset.rank, suit: card.dataset.suit})) {
+            unavailableCards.delete(cardKey);
+            removedCards.push({ rank: card.dataset.rank, suit: card.dataset.suit });
+          }
+          card.remove();
+          slot.classList.remove('taken');
+          slotsChanged = true;
         }
+      });
 
-         console.log("removeSelectedCards() - Конец. Карты удалены из комбинации.");
+      if (slotsChanged && removedCards.length > 0) {
+        fetch('/update_state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...getGameStateFromDOM(),
+            removed_cards: removedCards,
+            ai_settings: getAiSettings()
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.error) {
+            console.error("Ошибка при обновлении состояния:", data.error);
+            alert("Ошибка при обновлении состояния: " + data.error);
+          } else {
+            console.log("removeSelectedCards() - Сервер: состояние обновлено, удаленные карты:", removedCards);
+          }
+        })
+        .catch(error => {
+          console.error('removeSelectedCards() - Ошибка при обновлении состояния:', error);
+        });
+      } else {
+        console.log("removeSelectedCards() - Карты не выбраны для удаления или нечего удалять.");
+      }
+
+      console.log("removeSelectedCards() - Конец. Карты удалены из комбинации.");
     }
 
     function resetTraining() {
@@ -889,18 +875,18 @@ function setupTable() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                selected_cards: [],  // Сбрасываем selected_cards
+                selected_cards: [],  // Сбрасываем
                 board: { top: [], middle: [], bottom: [] }, // Сбрасываем board
                 discarded_cards: [], // Сбрасываем discarded_cards
                 removed_cards: [],   // Сбрасываем removed_cards
-                ai_settings: {  //  Убрал placementMode
+                ai_settings: {
                     fantasyType: document.getElementById('fantasyType').value,
                     fantasyMode: document.getElementById('fantasyMode').checked,
                     aiTime: document.getElementById('aiTime').value,
                     iterations: document.getElementById('iterations').value,
                     stopThreshold: document.getElementById('stopThreshold').value,
                     aiType: document.getElementById('aiType').value,
-                    placementMode: 'standard'
+                    placementMode: 'standard' //  Возвращаем placementMode к standard
                 }
             })
         })
@@ -929,32 +915,34 @@ function setupTable() {
     }
 
     function displayRoyalties(royalties) {
-        console.log("displayRoyalties() - Начало. royalties:", royalties);
-        const lines = ['top', 'middle', 'bottom'];
-        lines.forEach(line => {
-            const royaltyValue = royalties[line];
-            if (royaltyValue > 0) {
-                const row = document.getElementById(`${line}-row`);
-                const slots = row.querySelectorAll('.card-slot');
-                const lastSlot = slots[slots.length - 1]; // Берем последний слот в линии
+      console.log("displayRoyalties() - Начало. royalties:", royalties);
+      const lines = ['top', 'middle', 'bottom'];
+      lines.forEach(line => {
+        const royaltyValue = royalties[line];
+        if (royaltyValue > 0) {
+          const row = document.getElementById(`${line}-row`);
+          const slots = row.querySelectorAll('.card-slot');
+          //  ИСПРАВЛЕНО:  Берем последний слот в линии
+          const lastSlot = slots[slots.length - 1];
 
-                const royaltyAnimation = lastSlot.querySelector('.royalty-animation');
-                if (royaltyAnimation) {
-                    royaltyAnimation.textContent = `+${royaltyValue}`;
-                    royaltyAnimation.classList.remove('show');
-                    // requestAnimationFrame для более плавной анимации
-                    requestAnimationFrame(() => {
-                        royaltyAnimation.classList.add('show');
-                    });
+          const royaltyAnimation = lastSlot.querySelector('.royalty-animation');
+          if (royaltyAnimation) {
+            royaltyAnimation.textContent = `+${royaltyValue}`;
+            royaltyAnimation.classList.remove('show');
+            // requestAnimationFrame для более плавной анимации
+            requestAnimationFrame(() => {
+              royaltyAnimation.classList.add('show');
+            });
 
-                    setTimeout(() => { //  Добавил setTimeout
-                        royaltyAnimation.classList.remove('show');
-                    }, 3000); //  Убираем анимацию через 3 секунды
-                }
-            }
-        });
-        console.log("displayRoyalties() - Конец. Роялти отображены.");
+            setTimeout(() => { //  Добавил setTimeout
+              royaltyAnimation.classList.remove('show');
+            }, 3000); //  Убираем анимацию через 3 секунды
+          }
+        }
+      });
+      console.log("displayRoyalties() - Конец. Роялти отображены.");
     }
+
 
     function displayTotalRoyalty(totalRoyalty) {
         console.log("displayTotalRoyalty() - Начало. totalRoyalty:", totalRoyalty);
@@ -1039,6 +1027,57 @@ function setupTable() {
             alert('Произошла ошибка при сохранении настроек.');
         });
     }
+    // Добавлено: обработчик двойного клика для удаления из combination-area
+    document.getElementById('combination-area').addEventListener('dblclick', (e) => {
+    const card = e.target.closest('.card'); // Находим ближайшую карту
+        if (card) {
+            const cardData = { rank: card.dataset.rank, suit: card.dataset.suit, source: 'combination' };
+            handleDoubleClick(cardData); // вызываем handleDoubleClick
+        }
+    });
+
+    //  Исправлено:  dblclick
+    function handleDoubleClick(cardData) {
+        const cardKey = `${cardData.rank}${cardData.suit}`;
+        if (unavailableCards.has(cardKey) && cardData.source === 'combination') {
+            unavailableCards.delete(cardKey);
+            document.querySelectorAll('.selector-item').forEach(item => {
+                if (item.dataset.rank === cardData.rank || item.dataset.suit === cardData.suit) {
+                    item.classList.remove('unavailable');
+                }
+            });
+            //  Удаляем карту из combination-area
+            document.querySelectorAll('.combination-slot .card').forEach(card => {
+                if (card.dataset.rank === cardData.rank && card.dataset.suit === cardData.suit) {
+                    card.remove();
+                    //  Больше не нужно, т.к. есть unavailableCards
+                    // card.parentElement.classList.remove('taken');
+                }
+            });
+        }
+    }
+
+
+    // Добавлено: обработчик drop для слотов в таблице (чтобы можно было класть карты)
+    function handleDrop(e) {
+        e.preventDefault();
+        const cardData = JSON.parse(e.dataTransfer.getData('card'));
+        const cardKey = `${cardData.rank}${cardData.suit}`;
+
+        // Проверяем, что карта не в unavailableCards и что слот пустой
+        if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
+            const card = createCard(cardData);
+            e.currentTarget.appendChild(card); // Добавляем карту в слот
+            unavailableCards.add(cardKey); // Добавляем карту в unavailableCards
+            e.currentTarget.classList.add('taken'); // Помечаем слот как занятый
+
+            //  Убираем выделение с кнопок
+            document.querySelectorAll('.selector-item').forEach(item => item.classList.remove('selected'));
+            selectedRank = null;
+            selectedSuit = null;
+        }
+    }
+
 
     document.addEventListener('DOMContentLoaded', () => {
         setupTable();
@@ -1063,79 +1102,6 @@ function setupTable() {
             });
         });
     });
-
-  //  ИСПРАВЛЕНО:  dblclick
-    function handleDoubleClick(event) {
-      const card = event.target.closest('.card');
-      if (!card) return; //  Если клик не по карте, выходим
-
-      const cardData = { rank: card.dataset.rank, suit: card.dataset.suit };
-      const cardKey = `${cardData.rank}${cardData.suit}`;
-
-      if (unavailableCards.has(cardKey)) {
-        //  Удаляем карту из unavailableCards
-        unavailableCards.delete(cardKey);
-
-        //  Удаляем карту из DOM
-        if (card.parentNode.classList.contains('combination-slot')) { // Если карта в combination-area
-          card.remove();
-          //  Снимаем пометку "taken" со слота
-          card.parentElement.classList.remove('taken');
-        }
-
-        //  Отправляем информацию об удаленной карте на сервер
-        fetch('/update_state', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                removed_cards: [cardData],
-                //  Нужно передать текущее состояние, чтобы сервер мог корректно обновить
-                ...getGameStateFromDOM(),
-                ai_settings: getAiSettings()
-            })
-        });
-      }
-    }
-
-    //  Добавил глобальный обработчик dblclick
-    document.addEventListener('dblclick', (e) => {
-        const card = e.target.closest('.card');
-        if (card) {
-            handleDoubleClick({ rank: card.dataset.rank, suit: card.dataset.suit });
-        }
-    });
-
-
-    // Исправлено: добавил updateUI (пустая функция, если не нужна)
-    function updateUI() {
-        //  Эта функция может использоваться для обновления интерфейса, если нужно
-        //  Например, для сортировки карт или других визуальных изменений
-        //  Сейчас она пустая, но можно добавить логику при необходимости
-        document.querySelectorAll('.slot').forEach((slot, i) => {
-            slot.style.order = i; // Сбрасываем порядок
-            if (!slot.children.length) slot.style.display = 'flex'; // Показываем пустые слоты
-        });
-    }
-
-    // Добавлено: обработчик drop для слотов в таблице (чтобы можно было класть карты)
-    function handleDrop(e) {
-        e.preventDefault();
-        const cardData = JSON.parse(e.dataTransfer.getData('card'));
-        const cardKey = `${cardData.rank}${cardData.suit}`;
-
-        // Проверяем, что карта не в unavailableCards и что слот пустой
-        if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
-            const card = createCard(cardData);
-            e.currentTarget.appendChild(card); // Добавляем карту в слот
-            unavailableCards.add(cardKey); // Добавляем карту в unavailableCards
-            e.currentTarget.classList.add('taken'); // Помечаем слот как занятый
-
-            //  Убираем выделение с кнопок
-            document.querySelectorAll('.selector-item').forEach(item => item.classList.remove('selected'));
-            selectedRank = null;
-            selectedSuit = null;
-        }
-    }
 
     </script>
 </body>

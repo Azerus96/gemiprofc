@@ -12,19 +12,20 @@
             background-color: #f0f0f0;
             overflow-x: hidden;
             min-height: 100vh;
-            padding-bottom: 150px;
+            padding-bottom: 150px; /*  Чтобы контент не перекрывался нижним меню */
             box-sizing: border-box;
         }
 
+        /*  Контейнер для кнопок и, возможно, другой информации вверху */
         .controls {
             display: flex;
-            justify-content: center;
-            gap: 10px;
+            justify-content: center; /*  Центрируем кнопки */
+            gap: 10px; /*  Расстояние между кнопками */
             margin-bottom: 20px;
-            position: sticky;
+            position: sticky;  /*  Фиксируем наверху */
             top: 0;
-            z-index: 1001;
-            background: #f0f0f0;
+            z-index: 1001; /*  Чтобы перекрывало другие элементы */
+            background: #f0f0f0; /*  Фон, чтобы перекрывало */
             padding: 10px;
         }
 
@@ -42,141 +43,142 @@
 
         button:hover {
             background-color: #45a049;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-1px); /*  Эффект "поднятия" при наведении */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /*  Увеличиваем тень */
         }
 
         button:active {
-            transform: translateY(1px);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transform: translateY(1px); /*  Эффект "нажатия" */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2); /*  Уменьшаем тень */
         }
 
+        /*  Стили для кнопки меню (гамбургер) */
         .menu-toggle {
-            position: fixed;
-            left: 10px;
-            top: 20px;
-            z-index: 1003;
-            background: #4CAF50;
+            position: fixed; /*  Фиксированное позиционирование */
+            left: 10px;      /*  Отступ слева */
+            top: 20px;       /*  Отступ сверху */
+            z-index: 1003;   /*  Поверх всего */
+            background: #4CAF50; /*  Цвет фона */
             border: none;
-            border-radius: 0 5px 5px 0;
-            padding: 15px 10px;
+            border-radius: 0 5px 5px 0; /*  Скругление справа */
+            padding: 15px 10px; /*  Внутренние отступы */
             cursor: pointer;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1); /*  Тень справа */
         }
 
+        /*  Стили для выезжающей панели меню */
         .menu-panel {
-            position: fixed;
-            left: -300px;
+            position: fixed; /*  Фиксированное позиционирование */
+            left: -300px;    /*  Скрываем за левым краем экрана */
             top: 0;
             bottom: 0;
-            width: 300px;
+            width: 300px;   /*  Ширина панели */
             background: white;
-            z-index: 1002;
-            transition: left 0.3s ease;
+            z-index: 1002;   /*  Поверх всего, кроме кнопки меню */
+            transition: left 0.3s ease; /*  Плавное появление */
             padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1); /*  Тень справа */
+            overflow-y: auto; /*  Добавляем прокрутку, если контент не помещается */
         }
-
-        .menu-panel h3 {
+        .menu-panel h3{
             margin-left: 40px;
         }
 
         .menu-panel.open {
-            left: 0;
+            left: 0; /*  Показываем панель */
         }
 
+        /*  Стили для настроек */
         .setting-group {
             margin-bottom: 20px;
         }
 
         .setting-group label {
-            display: block;
+            display: block; /*  Каждый элемент с новой строки */
             margin-bottom: 10px;
         }
 
         .setting-group select,
         .setting-group input[type="range"],
-        .setting-group input[type="checkbox"] {
-            width: 100%;
+        .setting-group input[type="checkbox"]{
+            width: 100%; /*  Занимает всю ширину */
             margin-bottom: 10px;
         }
-
         .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .checkbox-container input[type="checkbox"] {
+          width: auto;
         }
 
-        .checkbox-container input[type="checkbox"] {
-            width: auto;
-        }
 	    .table {
-            display: grid;
-            grid-template-rows: auto auto auto;
-            gap: 20px;
-            margin: 20px auto;
+            display: grid; /*  Используем грид-раскладку */
+            grid-template-rows: auto auto auto; /*  Три строки для top, middle, bottom */
+            gap: 20px; /*  Расстояние между рядами */
+            margin: 20px auto;  /*  Центрируем таблицу */
             width: 95%;
-            max-width: 1200px;
+            max-width: 1200px; /*  Максимальная ширина */
             background-color: #1a472a;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            box-sizing: border-box;
+            box-sizing: border-box; /*  Чтобы padding не увеличивал размеры */
             overflow: visible;
         }
 
         .row {
-            display: flex;
-            justify-content: center;
-            gap: 2%;
-            min-height: 120px;
+            display: flex; /*  Используем флексбокс */
+            justify-content: center; /*  Центрируем слоты по горизонтали */
+            gap: 2%; /*  Расстояние между слотами */
+            min-height: 120px; /*  Минимальная высота ряда */
             padding: 10px;
             border-radius: 5px;
-            background-color: rgba(255,255,255,0.1);
-            flex-wrap: nowrap;
+            background-color: rgba(255,255,255,0.1); /*  Слегка прозрачный фон */
+            flex-wrap: nowrap; /*  Запрещаем перенос на новую строку */
         }
 
         .card-slot {
-            width: calc(70px + 2vw);
-            height: calc(100px + 2vw);
-            min-width: 50px;
-            min-height: 70px;
-            border: 2px dashed rgba(255,255,255,0.3);
+            width: calc(70px + 2vw); /*  Адаптивная ширина */
+            height: calc(100px + 2vw); /*  Адаптивная высота */
+            min-width: 50px; /*  Минимальная ширина */
+            min-height: 70px; /*  Минимальная высота */
+            border: 2px dashed rgba(255,255,255,0.3); /*  Пунктирная рамка */
             border-radius: 8px;
-            flex-shrink: 0;
-            display: flex;
+            flex-shrink: 0; /*  Не сжиматься */
+            display: flex; /*  Чтобы центрировать содержимое */
             justify-content: center;
             align-items: center;
             transition: all 0.3s ease;
             position: relative;
         }
-
-        .card-slot.taken {
-            border: 2px solid rgba(255, 0, 0, 0.5);
+        .card-slot.taken{
+            border: 2px solid rgba(255, 0, 0, 0.50);
         }
 
         .card {
-            width: calc(70px + 2vw);
-            height: calc(100px + 2vw);
-            min-width: 50px;
-            min-height: 70px;
+            width: calc(70px + 2vw); /*  Адаптивная ширина */
+            height: calc(100px + 2vw); /*  Адаптивная высота */
+            min-width: 50px; /*  Минимальная ширина */
+            min-height: 70px; /*  Минимальная высота */
             border-radius: 8px;
             background-color: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: calc(16px + 1vw);
+            font-size: calc(16px + 1vw); /*  Адаптивный размер шрифта */
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            position: absolute;
+            position: absolute; /*  Абсолютное позиционирование внутри слота */
             top: 0;
             left: 0;
             cursor: pointer;
-            user-select: none;
+            user-select: none; /*  Запрещаем выделение текста */
             -webkit-user-select: none;
             z-index: 2;
         }
 
+        /*  Цвета для карт */
         .card[data-suit="♥"], .card[data-suit="♦"] {
             color: #e44145;
         }
@@ -187,22 +189,22 @@
 
         .card-controls {
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /*  Располагаем элементы вертикально */
             gap: 20px;
-            margin: 20px auto;
+            margin: 20px auto; /*  Центрируем по горизонтали */
             padding: 20px;
             background: white;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 1200px;
+            max-width: 1200px; /*  Максимальная ширина */
         }
 
         .selector-row {
             display: flex;
-            justify-content: center;
+            justify-content: center; /*  Центрируем элементы по горизонтали */
             gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
+            flex-wrap: wrap; /*  Разрешаем перенос на новую строку */
+            align-items: center; /*  Выравниваем по вертикали */
             padding: 5px;
         }
 
@@ -212,19 +214,19 @@
             border-radius: 5px;
             cursor: pointer;
             transition: all 0.3s ease;
-            user-select: none;
+            user-select: none; /*  Запрещаем выделение текста */
             -webkit-user-select: none;
-            height: 45px;
-            display: flex;
+            height: 45px; /* Фиксированная высота */
+            display: flex; /*  Чтобы центрировать содержимое */
             align-items: center;
             justify-content: center;
-            box-sizing: border-box;
+            box-sizing: border-box; /*  Чтобы padding не увеличивал размеры */
             min-width: 30px;
         }
 
         .selector-item:hover, .action-button:hover {
             border-color: #4CAF50;
-            transform: translateY(-2px);
+            transform: translateY(-2px); /*  Эффект "поднятия" */
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
@@ -237,8 +239,8 @@
         .action-button {
             background-color: #4CAF50;
             color: white;
-            border: none;
-            padding: 0 20px;
+            border: none; /*  Убираем рамку */
+            padding: 0 20px; /*  Устанавливаем горизонтальные отступы */
             font-size: 16px;
             height: 45px;
         }
@@ -247,13 +249,13 @@
             justify-content: center;
             gap: 10px;
             margin: 20px auto;
-            flex-wrap: wrap;
-            max-width: 1200px;
+            flex-wrap: wrap; /*  Разрешаем перенос на новую строку */
+            max-width: 1200px; /*  Максимальная ширина */
         }
 
         .combination-slot {
-            width: calc(70px + 1vw);
-            height: calc(100px + 1vw);
+            width: calc(70px + 1vw); /*  Адаптивная ширина */
+            height: calc(100px + 1vw); /*  Адаптивная высота */
             border: 2px dashed #ddd;
             border-radius: 8px;
             display: flex;
@@ -261,7 +263,7 @@
             align-items: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background-color: transparent;
+            background-color: transparent; /*  Прозрачный фон */
             position: relative;
         }
 
@@ -271,7 +273,7 @@
 
         .combination-slot.active {
             border-color: #4CAF50;
-            background-color: rgba(76,175,80,0.1);
+            background-color: rgba(76,175,80,0.1); /*  Слегка подсвечиваем */
         }
 
         .fullscreen-btn {
@@ -286,15 +288,14 @@
             padding: 8px;
             box-shadow: none;
         }
-
         .selector-item.unavailable {
-            opacity: 0.5;
-            pointer-events: none;
+            opacity: 0.5; /*  Делаем полупрозрачными */
+            pointer-events: none; /*  Отключаем взаимодействие */
         }
 
         .royalty-animation {
             position: absolute;
-            right: -30px;
+            right: -30px; /*  Смещаем вправо */
             top: 50%;
             transform: translateY(-50%);
             background-color: gold;
@@ -303,25 +304,25 @@
             padding: 5px;
             font-size: 12px;
             z-index: 3;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            opacity: 0; /*  Изначально скрыто */
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; /*  Плавное появление */
             transform-origin: right center;
         }
 
         .royalty-animation.show {
-            opacity: 1;
-            transform: translateY(-50%) scale(1);
+            opacity: 1; /*  Показываем */
+            transform: translateY(-50%) scale(1); /*  Возвращаем к исходному размеру */
         }
-
         .total-royalty {
             margin-top: 10px;
             font-size: 18px;
             color: gold;
         }
 
+        /*  Медиа-запросы для адаптивности */
         @media (max-width: 768px) {
             body {
-                padding: 10px;
+                padding: 10px; /*  Уменьшаем отступы */
             }
 
             .table {
@@ -331,12 +332,12 @@
             }
 
             .row {
-                gap: 1.5%;
-                min-height: 80px;
+                gap: 1.5%; /*  Уменьшаем расстояние между слотами */
+                min-height: 80px; /*  Уменьшаем минимальную высоту */
             }
 
             .card, .card-slot {
-                width: calc(45px + 2vw);
+                width: calc(45px + 2vw); /*  Уменьшаем размеры */
                 height: calc(65px + 2vw);
                 font-size: calc(14px + 1vw);
             }
@@ -346,17 +347,16 @@
             }
 
             .selector-item, .action-button {
-                padding: 8px 12px;
+                padding: 8px 12px; /*  Уменьшаем padding */
                 font-size: 14px;
             }
-
-            .combination-slot {
-                width: calc(45px + 1vw);
+            .combination-slot{
+                width: calc(45px + 1vw); /*  Уменьшаем размеры */
                 height: calc(65px + 1vw);
             }
 
             .menu-panel {
-                width: 250px;
+                width: 250px; /*  Уменьшаем ширину */
             }
         }
     </style>
@@ -470,11 +470,11 @@
         }
 
         document.addEventListener('click', (e) => {
-            const menu = document.querySelector('.menu-panel');
-            const menuToggle = document.querySelector('.menu-toggle');
-            if (menuOpen && !menu.contains(e.target) && !menuToggle.contains(e.target)) {
-                toggleMenu();
-            }
+          const menu = document.querySelector('.menu-panel');
+          const menuToggle = document.querySelector('.menu-toggle');
+          if (menuOpen && !menu.contains(e.target) && !menuToggle.contains(e.target)) {
+            toggleMenu();
+          }
         });
 
         function toggleFullScreen() {
@@ -489,90 +489,127 @@
             }
         }
 
-function createCard(cardData) {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.dataset.rank = cardData.rank;
-    card.dataset.suit = cardData.suit;
-    card.textContent = `${cardData.rank}${cardData.suit}`;
+        function createCard(cardData) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.dataset.rank = cardData.rank;
+            card.dataset.suit = cardData.suit;
+            card.textContent = `${cardData.rank}${cardData.suit}`;
+            if (cardData.suit === '♥' || cardData.suit === '♦') {
+                card.style.color = '#e44145';
+            }
 
-    if (cardData.suit === '♥' || cardData.suit === '♦') {
-        card.style.color = '#e44145';
-    }
+            card.draggable = true;
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+                e.dataTransfer.setData('card', JSON.stringify({ rank: card.dataset.rank, suit: card.dataset.suit }));
+                card.style.opacity = '0.5';
+            });
+            card.addEventListener('dragend', (e) => {
+                card.style.opacity = '1';
+            });
 
-    card.draggable = true;
-    card.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', ''); //  Нужно для Firefox
-        e.dataTransfer.setData('card', JSON.stringify({ rank: card.dataset.rank, suit: card.dataset.suit }));
-        card.style.opacity = '0.5';
-    });
+            // Добавляем обработчик двойного клика для удаления карты из combination-area
+            card.addEventListener('dblclick', () => {
+              const cardKey = `${cardData.rank}${cardData.suit}`;
+              //  Проверяем, что карта находится в unavailableCards и что она находится в combination-area
+              if (unavailableCards.has(cardKey) && card.parentNode.classList.contains('combination-slot')) {
+                unavailableCards.delete(cardKey); // Удаляем из набора недоступных
+                //  Разблокируем кнопки, если нужно
+                document.querySelectorAll('.selector-item').forEach(item => {
+                  if (item.dataset.rank === cardData.rank) {
+                    item.classList.remove('unavailable');
+                  }
+                  if (item.dataset.suit === cardData.suit) {
+                    item.classList.remove('unavailable');
+                  }
+                });
+                card.remove(); //  Удаляем карту из DOM
+                //  Больше не нужно, т.к. есть unavailableCards
+                // card.parentElement.classList.remove('taken');
+              }
+            });
 
-    card.addEventListener('dragend', (e) => {
-        card.style.opacity = '1';
-    });
-    return card;
-}
-
-
-function setupTable() {
-    const rows = ['top', 'middle', 'bottom'];
-    const numCards = [3, 5, 5];
-
-    rows.forEach((row, index) => {
-        const rowElement = document.getElementById(`${row}-row`);
-        rowElement.innerHTML = ''; // Очищаем содержимое перед добавлением новых слотов
-        for (let i = 0; i < numCards[index]; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'card-slot';
-            slot.style.position = 'relative'; // Добавляем, чтобы royalty-animation работали
-            slot.addEventListener('dragover', (e) => e.preventDefault());
-            slot.addEventListener('drop', handleDrop);
-
-            const royaltyAnimation = document.createElement('div'); // Добавляем div для анимации роялти
-            royaltyAnimation.classList.add('royalty-animation');
-            slot.appendChild(royaltyAnimation); // Добавляем его в слот
-
-            rowElement.appendChild(slot);
+            return card;
         }
-    });
-}
+
+        function setupTable() {
+            const rows = ['top', 'middle', 'bottom'];
+            const numCards = [3, 5, 5];
+
+            rows.forEach((row, index) => {
+                const rowElement = document.getElementById(`${row}-row`);
+                rowElement.innerHTML = ''; // Очищаем содержимое перед добавлением новых слотов
+                for (let i = 0; i < numCards[index]; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'card-slot';
+                    slot.style.position = 'relative';
+                    slot.addEventListener('dragover', (e) => e.preventDefault());
+                    slot.addEventListener('drop', handleDrop); //  Убрал inline, добавил handleDrop
+
+                    const royaltyAnimation = document.createElement('div'); // Добавляем div для анимации роялти
+                    royaltyAnimation.classList.add('royalty-animation');
+                    slot.appendChild(royaltyAnimation); // Добавляем его в слот
+
+                    rowElement.appendChild(slot);
+                }
+            });
+        }
+
+        // Добавлено: drop в ячейку
+        function handleDrop(e) {
+            e.preventDefault();
+            const cardData = JSON.parse(e.dataTransfer.getData('card'));
+            const cardKey = `${cardData.rank}${cardData.suit}`;
+
+            // Проверяем, что карта не в unavailableCards и что слот пустой
+            if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
+                const card = createCard(cardData);
+                e.currentTarget.appendChild(card); // Добавляем карту в слот
+                unavailableCards.add(cardKey); // Добавляем карту в unavailableCards
+                e.currentTarget.classList.add('taken'); // Помечаем слот как занятый
+
+                //  Убираем выделение с кнопок
+                document.querySelectorAll('.selector-item').forEach(item => item.classList.remove('selected'));
+                selectedRank = null;
+                selectedSuit = null;
+            }
+        }
 
         function resetCombinationArea() {
-            const combinationArea = document.getElementById('combination-area');
-            combinationArea.innerHTML = ''; // Очищаем
-            unavailableCards.clear(); // Очищаем unavailableCards при сбросе области
+          const combinationArea = document.getElementById('combination-area');
+          combinationArea.innerHTML = ''; // Очищаем
+          unavailableCards.clear();
 
-            // Создаем 17 слотов для комбинаций
-            for (let i = 0; i < 17; i++) {
-                const slot = document.createElement('div');
-                slot.className = 'combination-slot';
-                slot.classList.remove('taken'); // Убедимся, что слоты не помечены как taken
-                slot.addEventListener('dragover', (e) => e.preventDefault());
-                slot.addEventListener('drop', handleCombinationSlotDrop);
-                combinationArea.appendChild(slot);
-            }
-            console.log(`resetCombinationArea() - Конец. Создано 17 слотов для комбинаций.`);
+          for (let i = 0; i < 17; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'combination-slot';
+            slot.classList.remove('taken');
+            slot.addEventListener('dragover', (e) => e.preventDefault());
+            slot.addEventListener('drop', handleCombinationSlotDrop);
+            combinationArea.appendChild(slot);
+          }
         }
-
 
         function handleCombinationSlotDrop(e) {
             e.preventDefault();
             const cardData = JSON.parse(e.dataTransfer.getData('card'));
             const cardKey = `${cardData.rank}${cardData.suit}`;
-
-            //  Добавил проверку, если карта уже есть, то не добавляем
             if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
                 const card = createCard(cardData);
                 e.currentTarget.appendChild(card);
                 unavailableCards.add(cardKey);
-                e.currentTarget.classList.add('taken'); //  Добавил класс taken
+                e.currentTarget.classList.add('taken');
+                //  Убираем выделение с кнопок
+                document.querySelectorAll('.selector-item').forEach(item => item.classList.remove('selected'));
+                selectedRank = null;
+                selectedSuit = null;
             }
         }
 
         function getGameStateFromDOM() {
             console.log("getGameStateFromDOM() - Начало");
 
-            // Получаем только карты из слотов, помеченных как taken
             const selectedCards = Array.from(document.querySelectorAll('.combination-area .combination-slot.taken .card')).map(card => ({
                 rank: card.dataset.rank,
                 suit: card.dataset.suit
@@ -606,8 +643,7 @@ function setupTable() {
             };
         }
 
-
-       function placeCardsOnBoard(moveData) {
+        function placeCardsOnBoard(moveData) {
           console.log("placeCardsOnBoard() - Начало. moveData:", moveData);
           const lines = ['top', 'middle', 'bottom'];
 
@@ -656,50 +692,49 @@ function setupTable() {
           console.log("placeCardsOnBoard() - Конец. Карты размещены на доске.");
         }
 
-
-    function handleCardSelection(element) {
-        if (element.classList.contains('unavailable')) {
-            return;
-        }
-
-        if (element.dataset.rank) {
-            if (selectedRank === element.dataset.rank) {
-                selectedRank = null;
-                element.classList.remove('selected');
-            } else {
-                document.querySelectorAll('[data-rank]').forEach(el => el.classList.remove('selected'));
-                selectedRank = element.dataset.rank;
-                element.classList.add('selected');
+        function handleCardSelection(element) {
+            if (element.classList.contains('unavailable')) {
+                return;
             }
-        } else if (element.dataset.suit) {
-            if (selectedSuit === element.dataset.suit) {
-                selectedSuit = null;
-                element.classList.remove('selected');
-            } else {
-                document.querySelectorAll('[data-suit]').forEach(el => el.classList.remove('selected'));
-                selectedSuit = element.dataset.suit;
-                element.classList.add('selected');
+
+            if (element.dataset.rank) {
+                if (selectedRank === element.dataset.rank) {
+                    selectedRank = null;
+                    element.classList.remove('selected');
+                } else {
+                    document.querySelectorAll('[data-rank]').forEach(el => el.classList.remove('selected'));
+                    selectedRank = element.dataset.rank;
+                    element.classList.add('selected');
+                }
+            } else if (element.dataset.suit) {
+                if (selectedSuit === element.dataset.suit) {
+                    selectedSuit = null;
+                    element.classList.remove('selected');
+                } else {
+                    document.querySelectorAll('[data-suit]').forEach(el => el.classList.remove('selected'));
+                    selectedSuit = element.dataset.suit;
+                    element.classList.add('selected');
+                }
+            }
+
+            if (selectedRank && selectedSuit) {
+              const cardKey = `${selectedRank}${selectedSuit}`;
+              if (!unavailableCards.has(cardKey)) {
+                const combinationArea = document.getElementById('combination-area');
+                const emptySlot = combinationArea.querySelector('.combination-slot:not(.taken)');
+                if (emptySlot) {
+                  const card = createCard({ rank: selectedRank, suit: selectedSuit });
+                  emptySlot.appendChild(card);
+                  unavailableCards.add(cardKey);
+                  emptySlot.classList.add('taken');
+
+                  selectedRank = null;
+                  selectedSuit = null;
+                  document.querySelectorAll('.selector-item').forEach(el => el.classList.remove('selected'));
+                }
+              }
             }
         }
-
-        if (selectedRank && selectedSuit) {
-          const cardKey = `${selectedRank}${selectedSuit}`;
-          if (!unavailableCards.has(cardKey)) {
-            const combinationArea = document.getElementById('combination-area');
-            const emptySlot = combinationArea.querySelector('.combination-slot:not(.taken)');
-            if (emptySlot) {
-              const card = createCard({ rank: selectedRank, suit: selectedSuit });
-              emptySlot.appendChild(card);
-              unavailableCards.add(cardKey);
-              emptySlot.classList.add('taken');
-
-              selectedRank = null;
-              selectedSuit = null;
-              document.querySelectorAll('.selector-item').forEach(el => el.classList.remove('selected'));
-            }
-          }
-        }
-    }
 
       function getAiSettings() {
             return {
@@ -754,7 +789,7 @@ function setupTable() {
            .then(response => {
                 console.log("distributeCards() - Ответ сервера статус:", response.status);
                 if (!response.ok) {
-                    return response.text().then(text => {
+                    return response.text().then(text => { //  Добавил обработку текста ошибки
                         console.error(`distributeCards() - HTTP ошибка! статус: ${response.status}, текст: ${text}`);
                         throw new Error(`HTTP error! status: ${response.status}, text: ${text}`);
                     });
@@ -764,27 +799,32 @@ function setupTable() {
             .then(data => {
                 console.log("distributeCards() - Ответ сервера данные:", data);
                 if (data.error) {
-                    alert(data.error);
+                    alert(data.error); //  Показываем ошибку пользователю
                     return;
                 }
 
+                // Размещаем новые карты
                 placeCardsOnBoard(data.move);
 
                 if (data.royalties) {
                     displayRoyalties(data.royalties);
                 }
-                if (data.total_royalty !== undefined) {
+                if (data.total_royalty !== undefined) { //  Добавил проверку
                     displayTotalRoyalty(data.total_royalty);
                 }
 
+                // Очищаем область комбинации
                 resetCombinationArea();
-                saveGameStateToSession();
+
+                saveGameStateToSession(); //  Сохраняем состояние
+
+                // Очищаем выбранные карты
                 gameState.selected_cards = []; //  Очищаем selected_cards
                 console.log("distributeCards() - selected_cards очищены.");
             })
             .catch(error => {
                 console.error('distributeCards() - Ошибка:', error);
-                alert('Произошла ошибка при получении хода ИИ.');
+                alert('Произошла ошибка при получении хода ИИ.'); //  Показываем ошибку пользователю
             });
         } else {
             alert('Пожалуйста, выберите карты для добавления.');
@@ -801,7 +841,7 @@ function setupTable() {
 
       combinationArea.querySelectorAll('.combination-slot.taken').forEach(slot => {
         const card = slot.querySelector('.card');
-        if (card) {
+        if(card){
           const cardKey = `${card.dataset.rank}${card.dataset.suit}`;
           if (!isCardOnBoard({rank: card.dataset.rank, suit: card.dataset.suit})) {
             unavailableCards.delete(cardKey);
@@ -811,6 +851,7 @@ function setupTable() {
           slot.classList.remove('taken');
           slotsChanged = true;
         }
+
       });
 
       if (slotsChanged && removedCards.length > 0) {
@@ -830,12 +871,13 @@ function setupTable() {
           return response.json();
         })
         .then(data => {
-          if (data.error) {
+          if(data.error){
             console.error("Ошибка при обновлении состояния:", data.error);
             alert("Ошибка при обновлении состояния: " + data.error);
           } else {
             console.log("removeSelectedCards() - Сервер: состояние обновлено, удаленные карты:", removedCards);
           }
+
         })
         .catch(error => {
           console.error('removeSelectedCards() - Ошибка при обновлении состояния:', error);
@@ -875,18 +917,18 @@ function setupTable() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                selected_cards: [],  // Сбрасываем
+                selected_cards: [],  // Сбрасываем selected_cards
                 board: { top: [], middle: [], bottom: [] }, // Сбрасываем board
                 discarded_cards: [], // Сбрасываем discarded_cards
                 removed_cards: [],   // Сбрасываем removed_cards
-                ai_settings: {
+                ai_settings: {  //  Убрал placementMode
                     fantasyType: document.getElementById('fantasyType').value,
                     fantasyMode: document.getElementById('fantasyMode').checked,
                     aiTime: document.getElementById('aiTime').value,
                     iterations: document.getElementById('iterations').value,
                     stopThreshold: document.getElementById('stopThreshold').value,
                     aiType: document.getElementById('aiType').value,
-                    placementMode: 'standard' //  Возвращаем placementMode к standard
+                    placementMode: 'standard'
                 }
             })
         })
@@ -922,7 +964,6 @@ function setupTable() {
         if (royaltyValue > 0) {
           const row = document.getElementById(`${line}-row`);
           const slots = row.querySelectorAll('.card-slot');
-          //  ИСПРАВЛЕНО:  Берем последний слот в линии
           const lastSlot = slots[slots.length - 1];
 
           const royaltyAnimation = lastSlot.querySelector('.royalty-animation');
@@ -934,15 +975,14 @@ function setupTable() {
               royaltyAnimation.classList.add('show');
             });
 
-            setTimeout(() => { //  Добавил setTimeout
+            setTimeout(() => {
               royaltyAnimation.classList.remove('show');
-            }, 3000); //  Убираем анимацию через 3 секунды
+            }, 3000);
           }
         }
       });
       console.log("displayRoyalties() - Конец. Роялти отображены.");
     }
-
 
     function displayTotalRoyalty(totalRoyalty) {
         console.log("displayTotalRoyalty() - Начало. totalRoyalty:", totalRoyalty);
@@ -954,14 +994,14 @@ function setupTable() {
     function saveGameStateToSession() {
         console.log("saveGameStateToSession() - Начало");
         const gameState = getGameStateFromDOM();
-        const aiSettings = { // Все настройки
+        const aiSettings = {
             fantasyType: document.getElementById('fantasyType').value,
             fantasyMode: document.getElementById('fantasyMode').checked,
             aiTime: document.getElementById('aiTime').value,
             iterations: document.getElementById('iterations').value,
             stopThreshold: document.getElementById('stopThreshold').value,
             aiType: document.getElementById('aiType').value,
-            placementMode: 'standard' // Сохраняем и placementMode
+            placementMode: 'standard'
         };
 
         console.log("saveGameStateToSession() - Сохранение состояния:", { ...gameState, ai_settings: aiSettings });
@@ -969,7 +1009,7 @@ function setupTable() {
         fetch('/update_state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...gameState, ai_settings: aiSettings }) // Все данные
+            body: JSON.stringify({ ...gameState, ai_settings: aiSettings })
         })
         .then(response => {
             if (!response.ok) {
@@ -1000,11 +1040,11 @@ function setupTable() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                selected_cards: [],  // Сбрасываем selected_cards
-                board: { top: [], middle: [], bottom: [] }, // Сбрасываем board
-                discarded_cards: [], // Сбрасываем discarded_cards
-                removed_cards: [],   // Сбрасываем removed_cards
-                ai_settings: aiSettings //ai_settings
+                selected_cards: [],
+                board: { top: [], middle: [], bottom: [] },
+                discarded_cards: [],
+                removed_cards: [],
+                ai_settings: aiSettings
             })
         })
     .then(response => {
@@ -1017,7 +1057,7 @@ function setupTable() {
             console.log("saveSettings() - Ответ сервера:", data);
             if (data.status === 'success') {
                 alert('Настройки сохранены!');
-                toggleMenu(); // Закрываем меню
+                toggleMenu();
             } else {
                 alert('Ошибка при сохранении настроек.');
             }
@@ -1036,46 +1076,22 @@ function setupTable() {
         }
     });
 
-    //  Исправлено:  dblclick
+
     function handleDoubleClick(cardData) {
-        const cardKey = `${cardData.rank}${cardData.suit}`;
-        if (unavailableCards.has(cardKey) && cardData.source === 'combination') {
-            unavailableCards.delete(cardKey);
-            document.querySelectorAll('.selector-item').forEach(item => {
-                if (item.dataset.rank === cardData.rank || item.dataset.suit === cardData.suit) {
-                    item.classList.remove('unavailable');
-                }
-            });
-            //  Удаляем карту из combination-area
-            document.querySelectorAll('.combination-slot .card').forEach(card => {
-                if (card.dataset.rank === cardData.rank && card.dataset.suit === cardData.suit) {
-                    card.remove();
-                    //  Больше не нужно, т.к. есть unavailableCards
-                    // card.parentElement.classList.remove('taken');
-                }
-            });
-        }
-    }
-
-
-    // Добавлено: обработчик drop для слотов в таблице (чтобы можно было класть карты)
-    function handleDrop(e) {
-        e.preventDefault();
-        const cardData = JSON.parse(e.dataTransfer.getData('card'));
-        const cardKey = `${cardData.rank}${cardData.suit}`;
-
-        // Проверяем, что карта не в unavailableCards и что слот пустой
-        if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
-            const card = createCard(cardData);
-            e.currentTarget.appendChild(card); // Добавляем карту в слот
-            unavailableCards.add(cardKey); // Добавляем карту в unavailableCards
-            e.currentTarget.classList.add('taken'); // Помечаем слот как занятый
-
-            //  Убираем выделение с кнопок
-            document.querySelectorAll('.selector-item').forEach(item => item.classList.remove('selected'));
-            selectedRank = null;
-            selectedSuit = null;
-        }
+      const cardKey = `${cardData.rank}${cardData.suit}`;
+      if (unavailableCards.has(cardKey) && cardData.source === 'combination') {
+        unavailableCards.delete(cardKey);
+        document.querySelectorAll('.selector-item').forEach(item => {
+          if (item.dataset.rank === cardData.rank || item.dataset.suit === cardData.suit) {
+            item.classList.remove('unavailable');
+          }
+        });
+        document.querySelectorAll('.combination-slot .card').forEach(card => {
+          if (card.dataset.rank === cardData.rank && card.dataset.suit === cardData.suit) {
+            card.remove();
+          }
+        });
+      }
     }
 
 
@@ -1102,6 +1118,26 @@ function setupTable() {
             });
         });
     });
+
+    // Добавлено: обработчик drop для слотов в таблице (чтобы можно было класть карты)
+    function handleDrop(e) {
+        e.preventDefault();
+        const cardData = JSON.parse(e.dataTransfer.getData('card'));
+        const cardKey = `${cardData.rank}${cardData.suit}`;
+
+        // Проверяем, что карта не в unavailableCards и что слот пустой
+        if (!unavailableCards.has(cardKey) && e.currentTarget.children.length === 0) {
+            const card = createCard(cardData);
+            e.currentTarget.appendChild(card); // Добавляем карту в слот
+            unavailableCards.add(cardKey); // Добавляем карту в unavailableCards
+            e.currentTarget.classList.add('taken'); // Помечаем слот как занятый
+
+            //  Убираем выделение с кнопок
+            document.querySelectorAll('.selector-item').forEach(item => item.classList.remove('selected'));
+            selectedRank = null;
+            selectedSuit = null;
+        }
+    }
 
     </script>
 </body>

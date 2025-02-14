@@ -217,14 +217,13 @@ class GameState:
                         valid_fantasy_repeats = [] # Валидные повторы фантазии
                         for p in itertools.permutations(self.selected_cards.cards): # Перебор перестановок
                             action = { # Действие для фантазии
-                                {
-                                    'top': list(p[:3]),
-                                    'middle': list(p[3:8]),
-                                    'bottom': list(p[8:13]),
-                                    'discarded': list(p[13:])  # Всегда сбрасываем одну карту
-                                }
-                                if self.is_valid_fantasy_repeat(action):
-                                    valid_fantasy_repeats.append(action)
+                                'top': list(p[:3]),
+                                'middle': list(p[3:8]),
+                                'bottom': list(p[8:13]),
+                                'discarded': list(p[13:])  # Всегда сбрасываем одну карту
+                            }
+                            if self.is_valid_fantasy_repeat(action):
+                                valid_fantasy_repeats.append(action)
                         if valid_fantasy_repeats:
                             actions = sorted(valid_fantasy_repeats, key=lambda a: self.calculate_action_royalty(a), reverse=True)
                         else:  # Если повтор фантазии невозможен
@@ -246,8 +245,8 @@ class GameState:
                             if bottom_count <= (5 - len(self.board.bottom)):
                                 action = {
                                     'top': remaining_cards[:top_count],
-                                    'middle': remaining_cards[top_cards_count:top_cards_count + middle_cards_count],
-                                    'bottom': remaining_cards[top_cards_count + middle_cards_count:],
+                                    'middle': remaining_cards[top_count:top_count + middle_count],
+                                    'bottom': remaining_cards[top_count + middle_count:],
                                     'discarded': None  # Ничего не сбрасываем
                                 }
                                 actions.append(action)
@@ -261,7 +260,6 @@ class GameState:
         logger.debug("get_actions - END") # ADDED LOG
         return actions
 
-    # ... (остальной код ai_engine.py без изменений)
     def is_valid_fantasy_entry(self, action):
         """Checks if an action leads to a valid fantasy mode entry."""
         new_board = Board()
@@ -470,10 +468,19 @@ class GameState:
 
         return bonus
 
-    def is_fantasy_repeat(self):
+    def is_fantasy_repeat(self, action):
         """Checks if the conditions for fantasy repeat are met."""
-        top_rank, _ = self.evaluate_hand(self.board.top)
-        bottom_rank, _ = self.evaluate_hand(self.board.bottom)
+        new_board = Board()
+        new_board.top = self.board.top + action.get('top', [])
+        new_board.middle = self.board.middle + action.get('middle', [])
+        new_board.bottom = self.board.bottom + action.get('bottom', [])
+
+        temp_state = GameState(board=new_board, ai_settings=self.ai_settings)
+        if temp_state.is_dead_hand():
+            return False
+
+        top_rank, _ = temp_state.evaluate_hand(new_board.top)
+        bottom_rank, _ = temp_state.evaluate_hand(new_board.bottom)
 
         if top_rank == 7: # Set in top row
             return True
@@ -617,7 +624,7 @@ class CFRAgent:
             return 0
 
         if game_state.is_terminal():
-                        payoff = game_state.get_payoff()
+            payoff = game_state.get_payoff()
             logger.debug(f"cfr called in terminal state. Payoff: {payoff}")
             return payoff
 

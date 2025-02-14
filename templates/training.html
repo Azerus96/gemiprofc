@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
+        /* ... (CSS стили - без изменений) ... */
         body {
             margin: 0;
             padding: 20px;
@@ -843,7 +844,7 @@
             }
             slot.classList.remove('taken'); // Слот теперь свободен
             card.remove();
-            slotsChanged = True; // Отмечаем, что слоты изменились
+            slotsChanged = true; // Отмечаем, что слоты изменились
         });
 
         if (slotsChanged && removedCards.length > 0) { // Отправляем на сервер, только если были удалены карты

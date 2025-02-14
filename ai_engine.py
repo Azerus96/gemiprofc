@@ -929,7 +929,7 @@ class CFRAgent:
                 score = Card.RANKS.index(cards[-1].rank) * 0.001
 
         return score
-
+    
     def baseline_evaluation(self, state):
         """
         Улучшенная эвристическая оценка состояния игры.
@@ -958,7 +958,7 @@ class CFRAgent:
 
         total_score = 0
 
-    def evaluate_partial_combination(cards, row_type):
+        def evaluate_partial_combination(cards, row_type):
             """Оценка потенциала неполной комбинации"""
             if not cards:
                 return 0
@@ -991,6 +991,47 @@ class CFRAgent:
                     score += 40 + rank_value * 1.5
 
             return score
+
+        # Оценка по рядам
+        rows = {'top': state.board.top, 'middle': state.board.middle, 'bottom': state.board.bottom} # ОШИБКА ТУТ
+        for row_name, cards in rows.items():
+            row_score = 0
+
+            # Определение текущей комбинации
+            combination = self.identify_combination(cards)
+            if combination:
+                row_score += COMBINATION_WEIGHTS[combination]
+
+            # Оценка потенциала неполной комбинации
+            potential_score = evaluate_partial_combination(cards, row_name)
+            row_score += potential_score
+
+            # Штраф за неправильное количество карт
+            max_cards = {'top': 3, 'middle': 5, 'bottom': 5}
+            if len(cards) > max_cards[row_name]:
+                row_score -= 50
+
+            # Применяем множитель ряда
+            row_score *= ROW_MULTIPLIERS[row_name]
+
+            total_score += row_score
+
+        # Дополнительные стратегические бонусы
+        if self.is_bottom_stronger_than_middle(state):
+            total_score += 30
+        if self.is_middle_stronger_than_top(state):
+            total_score += 20
+
+        # Штраф за нарушение правила силы рядов
+        if not self.check_row_strength_rule(state):
+            total_score -= 100
+
+        # Учет сброшенных карт
+        for card in state.discarded_cards:
+            rank_value = Card.RANKS.index(card.rank)
+            total_score -= rank_value * 0.5  # Небольшой штраф за сброс высоких карт
+
+        return total_score
 
         # Оценка по рядам
         rows = {'top': state.board.top, 'middle': state.board.middle, 'bottom': state.board.bottom}

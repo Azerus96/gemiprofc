@@ -526,7 +526,7 @@ function setupTable() {
             slot.className = 'card-slot';
             slot.style.position = 'relative'; // Добавляем, чтобы royalty-animation работали
             slot.addEventListener('dragover', (e) => e.preventDefault());
-            slot.addEventListener('drop', handleDrop);
+            slot.addEventListener('drop', handleDrop); //  Убрал inline, добавил handleDrop
 
             const royaltyAnimation = document.createElement('div'); // Добавляем div для анимации роялти
             royaltyAnimation.classList.add('royalty-animation');

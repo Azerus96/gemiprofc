@@ -1,7 +1,7 @@
 import random
 import itertools
 from collections import defaultdict, Counter
-import utils  #  Предполагается, что здесь функции save_ai_progress и load_ai_progress
+import utils  # Предполагается, что здесь функции save_ai_progress и load_ai_progress
 from threading import Event, Thread
 import time
 import math

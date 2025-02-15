@@ -1163,4 +1163,3 @@ class RandomAgent:
 
     def load_progress(self):
         pass
-                
